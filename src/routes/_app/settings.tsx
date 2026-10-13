@@ -1,0 +1,135 @@
+import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { createFileRoute, useNavigate } from '@tanstack/react-router'
+import { Copy } from 'lucide-react'
+import { useState } from 'react'
+import { toast } from 'sonner'
+import { useLog } from '@/components/log-context'
+import { ThemeToggle } from '@/components/theme-toggle'
+import { ConfirmButton, PageHeader, Section } from '@/components/ui-bits'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { useLeaveLog, useRemoveCoach, useRotateInvite, useUpdateLog } from '@/data/queries'
+import { supabase } from '@/lib/supabase'
+
+export const Route = createFileRoute('/_app/settings')({ component: Settings })
+
+function Settings() {
+  const { log, user, members, isPlayer, playerName } = useLog()
+  const navigate = useNavigate()
+  const qc = useQueryClient()
+  const updateLog = useUpdateLog(log.id)
+  const rotate = useRotateInvite(log.id)
+  const leave = useLeaveLog(log.id, user.id)
+  const removeCoach = useRemoveCoach(log.id)
+  const [name, setName] = useState(log.name)
+
+  const me = members.find((m) => m.user_id === user.id)
+  const [myName, setMyName] = useState<string | null>(null)
+  const saveName = useMutation({
+    mutationFn: async (display_name: string) => {
+      const { error } = await supabase.from('profiles').update({ display_name }).eq('id', user.id)
+      if (error) throw new Error(error.message)
+    },
+    onSuccess: () => {
+      toast.success('Name updated')
+      void qc.invalidateQueries({ queryKey: ['members'] })
+      void qc.invalidateQueries({ queryKey: ['players'] })
+    },
+  })
+
+  const link = `${window.location.origin}/join/${log.invite_code}`
+  const copy = (text: string) =>
+    navigator.clipboard.writeText(text).then(() => toast.success('Link copied'), () => toast.error('Copy failed. Select the link and copy it by hand.'))
+
+  const sorted = [...members].sort((a, b) => Number(b.role === 'player') - Number(a.role === 'player'))
+  let first = true
+  const top = () => { const t = first; first = false; return t ? 'border-t-0 pt-0' : undefined }
+
+  return (
+    <>
+      <PageHeader title="Settings" />
+
+      {isPlayer && (
+        <Section title="Invite your coach" className={top()}
+          hint="Anyone with this link can join your log as a coach. Send it only to the person who trains you.">
+          <div className="flex flex-col gap-3">
+            <Label htmlFor="invite-link" className="sr-only">Coach invite link</Label>
+            <div className="flex gap-2">
+              <Input id="invite-link" readOnly value={link} onFocus={(e) => e.currentTarget.select()} />
+              <Button type="button" variant="outline" onClick={() => void copy(link)}><Copy /> Copy</Button>
+            </div>
+            <ConfirmButton variant="ghost" size="sm" className="self-start" armedLabel="Tap again to cancel the old link"
+              onConfirm={() => rotate.mutate(undefined, { onSuccess: () => toast.success('New link created. The old one no longer works.') })}>
+              Make a new link
+            </ConfirmButton>
+          </div>
+        </Section>
+      )}
+
+      <Section title="People in this log" className={top()}
+        hint={isPlayer ? 'Coaches can read your log and add notes. They cannot change your entries.' : `You are a coach in ${playerName}’s log.`}>
+        <ul className="divide-y">
+          {sorted.map((m) => (
+            <li key={m.user_id} className="flex items-center justify-between gap-3 py-2.5">
+              <span className="min-w-0 truncate">
+                {m.profiles?.display_name || 'Unnamed'}
+                {m.user_id === user.id && <span className="text-muted-foreground"> (you)</span>}
+              </span>
+              <span className="flex items-center gap-2">
+                <span className="rounded bg-muted px-2 py-0.5 text-xs capitalize">{m.role}</span>
+                {isPlayer && m.role === 'coach' && (
+                  <ConfirmButton variant="ghost" size="xs" armedLabel="Tap again to remove"
+                    onConfirm={() => removeCoach.mutate(m.user_id, { onSuccess: () => toast.success('Coach removed') })}>
+                    Remove
+                  </ConfirmButton>
+                )}
+              </span>
+            </li>
+          ))}
+        </ul>
+        <form className="mt-4 flex items-end gap-2"
+          onSubmit={(e) => { e.preventDefault(); const v = (myName ?? me?.profiles?.display_name ?? '').trim(); if (v) saveName.mutate(v) }}>
+          <div className="flex flex-1 flex-col gap-1.5">
+            <Label htmlFor="my-name">Your name</Label>
+            <Input id="my-name" maxLength={80} value={myName ?? me?.profiles?.display_name ?? ''} onChange={(e) => setMyName(e.target.value)} />
+          </div>
+          <Button type="submit" variant="outline">Save</Button>
+        </form>
+      </Section>
+
+      {isPlayer && (
+        <Section title="This log">
+          <form className="flex items-end gap-2"
+            onSubmit={(e) => { e.preventDefault(); if (name.trim() && name.trim() !== log.name) updateLog.mutate({ name: name.trim() }, { onSuccess: () => toast.success('Renamed') }) }}>
+            <div className="flex flex-1 flex-col gap-1.5">
+              <Label htmlFor="log-name">Name</Label>
+              <Input id="log-name" maxLength={80} value={name} onChange={(e) => setName(e.target.value)} />
+            </div>
+            <Button type="submit" variant="outline">Rename</Button>
+          </form>
+        </Section>
+      )}
+
+      <Section title="Appearance">
+        <ThemeToggle />
+      </Section>
+
+      <Section title="Account" className="pb-0">
+        <p className="mb-3 text-sm text-muted-foreground">Signed in as {user.email}</p>
+        <div className="flex flex-wrap gap-2">
+          <Button variant="outline" onClick={() => void supabase.auth.signOut().then(() => { qc.clear(); return navigate({ to: '/login' }) })}>
+            Sign out
+          </Button>
+          {!isPlayer && (
+            <ConfirmButton variant="ghost" armedLabel="Tap again to stop coaching this player"
+              onConfirm={() => leave.mutate(undefined, { onSuccess: () => { toast.success('You left this log'); void navigate({ to: '/overview' }) } })}>
+              Stop coaching {playerName}
+            </ConfirmButton>
+          )}
+        </div>
+        {!isPlayer && <p className="mt-2 text-xs text-muted-foreground">You lose access to this log. {playerName} keeps everything.</p>}
+      </Section>
+    </>
+  )
+}
