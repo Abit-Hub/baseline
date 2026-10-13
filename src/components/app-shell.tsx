@@ -1,6 +1,6 @@
 import { Link } from '@tanstack/react-router'
 import { useAtom } from 'jotai'
-import { BookOpen, CalendarDays, Flag, ListChecks, MessageSquarePlus, NotebookPen, Plus, Settings, Users } from 'lucide-react'
+import { BookOpen, CalendarDays, ListChecks, MessageSquarePlus, NotebookPen, Plus, Settings, Users } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { useLog } from '@/components/log-context'
 import { LogSwitcher } from '@/components/log-switcher'
@@ -23,8 +23,7 @@ export function AppShell({ children }: { children: ReactNode }) {
     { to: '/overview', label: 'Overview', Icon: BookOpen, exact: true },
     { to: '/sessions', label: 'Sessions', Icon: NotebookPen, exact: false },
     { to: '/schedule', label: 'Schedule', Icon: CalendarDays, exact: false },
-    { to: '/drills', label: 'Drills', Icon: ListChecks, exact: false },
-    { to: '/goals', label: 'Goals', Icon: Flag, exact: false },
+    { to: '/plan', label: 'Plan', Icon: ListChecks, exact: false },
     { to: '/settings', label: 'Settings', Icon: Settings, exact: false },
   ] as const
 

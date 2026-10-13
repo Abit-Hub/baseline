@@ -1,18 +1,15 @@
 import { useForm } from '@tanstack/react-form'
 import { useQuery } from '@tanstack/react-query'
-import { createFileRoute } from '@tanstack/react-router'
 import { format, parseISO } from 'date-fns'
 import { useLog } from '@/components/log-context'
-import { ConfirmButton, EmptyState, PageHeader, Section } from '@/components/ui-bits'
+import { ConfirmButton, EmptyState, Section } from '@/components/ui-bits'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
 import { rowsQuery, useDeleteRow, useInsertRow, useUpdateRow } from '@/data/queries'
 import { cn } from '@/lib/utils'
 
-export const Route = createFileRoute('/_app/goals')({ component: Goals })
-
-function Goals() {
+export function GoalsPanel() {
   const { log, user, isPlayer, isCoach, playerName } = useLog()
   const goals = useQuery(rowsQuery('goals', log.id))
   const goalUpdate = useUpdateRow('goals', log.id)
@@ -34,8 +31,6 @@ function Goals() {
 
   return (
     <>
-      <PageHeader title="Goals" />
-
       <Section title="Goals" className="border-t-0 pt-0" hint={isCoach ? `Add a goal to suggest it to ${playerName}. Only ${playerName} can tick goals off.` : undefined}>
         {goals.isSuccess && goals.data.length === 0 && <EmptyState title="No goals yet">Pick one small target for this month.</EmptyState>}
         <ul className="divide-y">

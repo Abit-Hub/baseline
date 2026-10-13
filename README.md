@@ -1,6 +1,6 @@
 # Baseline
 
-A training log shared between a player and their coach. The player logs sessions, rates how they felt, and tracks drills, and goals. Coaches read the log, leave notes and suggest drills and goals. A coach can follow any number of players. Changes appear live for everyone.
+A training log shared between a player and their coach. The player logs sessions, rates how they felt, and tracks drills and goals. Coaches read the log, leave notes and suggest drills and goals. A coach can follow any number of players. Changes appear live for everyone.
 
 ## Stack
 
@@ -51,7 +51,7 @@ How to start: the player signs up, chooses "I am a player" and creates their log
 
 ```
 src/
-  routes/       file-based routes: /login, /join/$code, and the signed-in app under _app (overview, sessions, schedule, drills, goals, settings)
+  routes/       file-based routes: /login, /join/$code, and the signed-in app under _app (overview, sessions, schedule, plan, settings)
   data/         TanStack Query options and mutations (optimistic toggles) plus the Supabase realtime hook
   domain/       types, constants and pure stats (unit tested)
   state/        Jotai atoms: theme, active log, sessions filter, session editor

@@ -90,7 +90,7 @@ function Sessions() {
             {[null, ...chips.map(([n]) => n)].map((name) => (
               <button key={name ?? 'all'} type="button" aria-pressed={filter === name}
                 onClick={() => setFilter(name)}
-                className={cn('rounded-full border px-3 py-1 text-sm transition-colors',
+                className={cn('rounded-full border px-3.5 py-2 text-sm md:px-3 md:py-1 transition-colors',
                   filter === name ? 'border-primary bg-primary text-primary-foreground' : 'hover:bg-accent')}>
                 {name ?? 'All'}
               </button>

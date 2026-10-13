@@ -1,11 +1,10 @@
 import { useForm } from '@tanstack/react-form'
 import { useQuery } from '@tanstack/react-query'
-import { createFileRoute } from '@tanstack/react-router'
 import { format } from 'date-fns'
 import { toast } from 'sonner'
 import { z } from 'zod'
 import { useLog } from '@/components/log-context'
-import { ConfirmButton, EmptyState, PageHeader, Section } from '@/components/ui-bits'
+import { ConfirmButton, EmptyState, Section } from '@/components/ui-bits'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -14,15 +13,13 @@ import { SKILLS } from '@/domain/constants'
 import { agoLabel, daysAgo } from '@/domain/stats'
 import type { Drill } from '@/domain/types'
 
-export const Route = createFileRoute('/_app/drills')({ component: Drills })
-
 const schema = z.object({
   name: z.string().trim().min(1, 'Give the drill a name').max(120),
   skill: z.string(),
   description: z.string().max(300),
 })
 
-function Drills() {
+export function DrillsPanel() {
   const { log, user, isPlayer, isCoach, playerId, playerName } = useLog()
   const { data = [], isPending } = useQuery(rowsQuery('drills', log.id))
   const insert = useInsertRow('drills', log.id)
@@ -51,8 +48,7 @@ function Drills() {
 
   return (
     <>
-      <PageHeader title="Drills" />
-      <p className="-mt-4 mb-6 text-muted-foreground">
+      <p className="mb-6 text-muted-foreground">
         {isPlayer
           ? 'Practice between sessions. Tap “Practised” when you finish one. Short and often beats long and rare.'
           : `Drills ${playerName} is working on. Add one to suggest it to them.`}
@@ -112,7 +108,7 @@ function Drills() {
                 <div className="flex flex-col gap-1.5">
                   <Label htmlFor="d-skill">Skill</Label>
                   <select id="d-skill" value={f.state.value} onChange={(e) => f.handleChange(e.target.value)}
-                    className="h-8 rounded-lg border border-input bg-transparent px-2.5 text-sm dark:bg-input/30">
+                    className="h-10 rounded-lg border border-input md:h-8 bg-transparent px-2.5 text-sm dark:bg-input/30">
                     {SKILLS.map((s) => <option key={s}>{s}</option>)}
                   </select>
                 </div>

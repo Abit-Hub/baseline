@@ -13,9 +13,9 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as DemoRouteImport } from './routes/demo'
 import { Route as LoginRouteImport } from './routes/login'
-import { Route as AppDrillsRouteImport } from './routes/_app/drills'
-import { Route as AppGoalsRouteImport } from './routes/_app/goals'
+import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as AppOverviewRouteImport } from './routes/_app/overview'
+import { Route as AppPlanRouteImport } from './routes/_app/plan'
 import { Route as AppPlayersRouteImport } from './routes/_app/players'
 import { Route as AppScheduleRouteImport } from './routes/_app/schedule'
 import { Route as AppSessionsRouteImport } from './routes/_app/sessions'
@@ -41,19 +41,19 @@ const LoginRoute = LoginRouteImport.update({
   path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AppDrillsRoute = AppDrillsRouteImport.update({
-  id: '/drills',
-  path: '/drills',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppGoalsRoute = AppGoalsRouteImport.update({
-  id: '/goals',
-  path: '/goals',
-  getParentRoute: () => AppRoute,
+const ResetPasswordRoute = ResetPasswordRouteImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const AppOverviewRoute = AppOverviewRouteImport.update({
   id: '/overview',
   path: '/overview',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppPlanRoute = AppPlanRouteImport.update({
+  id: '/plan',
+  path: '/plan',
   getParentRoute: () => AppRoute,
 } as any)
 const AppPlayersRoute = AppPlayersRouteImport.update({
@@ -86,9 +86,9 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/demo': typeof DemoRoute
   '/login': typeof LoginRoute
-  '/drills': typeof AppDrillsRoute
-  '/goals': typeof AppGoalsRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/overview': typeof AppOverviewRoute
+  '/plan': typeof AppPlanRoute
   '/players': typeof AppPlayersRoute
   '/schedule': typeof AppScheduleRoute
   '/sessions': typeof AppSessionsRoute
@@ -99,9 +99,9 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/demo': typeof DemoRoute
   '/login': typeof LoginRoute
-  '/drills': typeof AppDrillsRoute
-  '/goals': typeof AppGoalsRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/overview': typeof AppOverviewRoute
+  '/plan': typeof AppPlanRoute
   '/players': typeof AppPlayersRoute
   '/schedule': typeof AppScheduleRoute
   '/sessions': typeof AppSessionsRoute
@@ -114,9 +114,9 @@ export interface FileRoutesById {
   '/_app': typeof AppRouteWithChildren
   '/demo': typeof DemoRoute
   '/login': typeof LoginRoute
-  '/_app/drills': typeof AppDrillsRoute
-  '/_app/goals': typeof AppGoalsRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/_app/overview': typeof AppOverviewRoute
+  '/_app/plan': typeof AppPlanRoute
   '/_app/players': typeof AppPlayersRoute
   '/_app/schedule': typeof AppScheduleRoute
   '/_app/sessions': typeof AppSessionsRoute
@@ -129,9 +129,9 @@ export interface FileRouteTypes {
     | '/'
     | '/demo'
     | '/login'
-    | '/drills'
-    | '/goals'
+    | '/reset-password'
     | '/overview'
+    | '/plan'
     | '/players'
     | '/schedule'
     | '/sessions'
@@ -142,9 +142,9 @@ export interface FileRouteTypes {
     | '/'
     | '/demo'
     | '/login'
-    | '/drills'
-    | '/goals'
+    | '/reset-password'
     | '/overview'
+    | '/plan'
     | '/players'
     | '/schedule'
     | '/sessions'
@@ -156,9 +156,9 @@ export interface FileRouteTypes {
     | '/_app'
     | '/demo'
     | '/login'
-    | '/_app/drills'
-    | '/_app/goals'
+    | '/reset-password'
     | '/_app/overview'
+    | '/_app/plan'
     | '/_app/players'
     | '/_app/schedule'
     | '/_app/sessions'
@@ -171,6 +171,7 @@ export interface RootRouteChildren {
   AppRoute: typeof AppRouteWithChildren
   DemoRoute: typeof DemoRoute
   LoginRoute: typeof LoginRoute
+  ResetPasswordRoute: typeof ResetPasswordRoute
   JoinCodeRoute: typeof JoinCodeRoute
 }
 
@@ -204,25 +205,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_app/drills': {
-      id: '/_app/drills'
-      path: '/drills'
-      fullPath: '/drills'
-      preLoaderRoute: typeof AppDrillsRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/_app/goals': {
-      id: '/_app/goals'
-      path: '/goals'
-      fullPath: '/goals'
-      preLoaderRoute: typeof AppGoalsRouteImport
-      parentRoute: typeof AppRoute
+    '/reset-password': {
+      id: '/reset-password'
+      path: '/reset-password'
+      fullPath: '/reset-password'
+      preLoaderRoute: typeof ResetPasswordRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/_app/overview': {
       id: '/_app/overview'
       path: '/overview'
       fullPath: '/overview'
       preLoaderRoute: typeof AppOverviewRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/plan': {
+      id: '/_app/plan'
+      path: '/plan'
+      fullPath: '/plan'
+      preLoaderRoute: typeof AppPlanRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/players': {
@@ -264,9 +265,8 @@ declare module '@tanstack/react-router' {
 }
 
 interface AppRouteChildren {
-  AppDrillsRoute: typeof AppDrillsRoute
-  AppGoalsRoute: typeof AppGoalsRoute
   AppOverviewRoute: typeof AppOverviewRoute
+  AppPlanRoute: typeof AppPlanRoute
   AppPlayersRoute: typeof AppPlayersRoute
   AppScheduleRoute: typeof AppScheduleRoute
   AppSessionsRoute: typeof AppSessionsRoute
@@ -274,9 +274,8 @@ interface AppRouteChildren {
 }
 
 const AppRouteChildren: AppRouteChildren = {
-  AppDrillsRoute: AppDrillsRoute,
-  AppGoalsRoute: AppGoalsRoute,
   AppOverviewRoute: AppOverviewRoute,
+  AppPlanRoute: AppPlanRoute,
   AppPlayersRoute: AppPlayersRoute,
   AppScheduleRoute: AppScheduleRoute,
   AppSessionsRoute: AppSessionsRoute,
@@ -290,6 +289,7 @@ const rootRouteChildren: RootRouteChildren = {
   AppRoute: AppRouteWithChildren,
   DemoRoute: DemoRoute,
   LoginRoute: LoginRoute,
+  ResetPasswordRoute: ResetPasswordRoute,
   JoinCodeRoute: JoinCodeRoute,
 }
 export const routeTree = rootRouteImport

@@ -102,7 +102,7 @@ function SessionForm({ session, onDone }: { session: Session | null; onDone: () 
                 return (
                   <button key={s} type="button" aria-pressed={on}
                     onClick={() => f.handleChange(on ? f.state.value.filter((x) => x !== s) : [...f.state.value, s])}
-                    className={cn('rounded-full border px-3 py-1 text-sm transition-colors',
+                    className={cn('rounded-full border px-3.5 py-2 text-sm md:px-3 md:py-1 transition-colors',
                       on ? 'border-primary bg-primary text-primary-foreground' : 'hover:bg-accent')}>
                     {s}
                   </button>

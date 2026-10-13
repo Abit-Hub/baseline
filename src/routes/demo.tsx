@@ -224,7 +224,7 @@ function NoteBox({ players, playerId, onClose, onSave }: {
         <div className="flex flex-wrap gap-1.5" role="radiogroup" aria-label="Player">
           {players.map((p) => (
             <button key={p.id} type="button" role="radio" aria-checked={who === p.id} onClick={() => setWho(p.id)}
-              className={cn('rounded-full border px-3 py-1 text-sm transition-colors', who === p.id ? 'border-primary bg-primary text-primary-foreground' : 'hover:bg-accent')}>
+              className={cn('rounded-full border px-3.5 py-2 text-sm md:px-3 md:py-1 transition-colors', who === p.id ? 'border-primary bg-primary text-primary-foreground' : 'hover:bg-accent')}>
               {p.name}
             </button>
           ))}

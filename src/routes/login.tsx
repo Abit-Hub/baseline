@@ -27,7 +27,7 @@ const schema = z.object({
 
 function Login() {
   const { redirect: back, mode: startMode } = Route.useSearch()
-  const [mode, setMode] = useState<'in' | 'up'>(startMode ?? 'in')
+  const [mode, setMode] = useState<'in' | 'up' | 'reset'>(startMode ?? 'in')
   const [notice, setNotice] = useState<string | null>(null)
   const navigate = useNavigate()
 
@@ -55,6 +55,8 @@ function Login() {
       await navigate({ to: back ?? '/overview' })
     },
   })
+
+  if (mode === 'reset') return <ForgotPassword onBack={() => setMode('in')} />
 
   return (
     <main className="mx-auto flex min-h-svh w-full max-w-sm flex-col justify-center gap-8 px-4 py-10">
@@ -100,7 +102,15 @@ function Login() {
         <form.Field name="password">
           {(f) => (
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="password">Password</Label>
+              <div className="flex items-baseline justify-between">
+                <Label htmlFor="password">Password</Label>
+                {mode === 'in' && (
+                  <button type="button" onClick={() => setMode('reset')}
+                    className="text-sm text-muted-foreground underline underline-offset-4 hover:text-foreground">
+                    Forgot password?
+                  </button>
+                )}
+              </div>
               <Input id="password" type="password"
                 autoComplete={mode === 'in' ? 'current-password' : 'new-password'}
                 value={f.state.value} onBlur={f.handleBlur}
@@ -142,4 +152,45 @@ function FieldMessage({ errors }: { errors: unknown[] }) {
   const first = errors[0]
   const text = typeof first === 'string' ? first : (first as { message?: string } | undefined)?.message
   return text ? <p className="text-sm text-destructive">{text}</p> : null
+}
+
+function ForgotPassword({ onBack }: { onBack: () => void }) {
+  const [email, setEmail] = useState('')
+  const [sent, setSent] = useState(false)
+  const [busy, setBusy] = useState(false)
+
+  const send = async () => {
+    if (!z.email().safeParse(email.trim()).success) return void toast.error('Enter a valid email address')
+    setBusy(true)
+    const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), { redirectTo: `${window.location.origin}/reset-password` })
+    setBusy(false)
+    if (error) return void toast.error(error.message)
+    setSent(true)
+  }
+
+  return (
+    <main className="mx-auto flex min-h-svh w-full max-w-sm flex-col justify-center gap-8 px-4 py-10">
+      <header>
+        <Link to="/" className="text-sm font-medium tracking-wide text-primary uppercase">Baseline</Link>
+        <h1 className="mt-1 text-5xl leading-none">Reset your password</h1>
+        <p className="mt-3 text-muted-foreground">Enter your email and we will send you a link to choose a new one.</p>
+      </header>
+      {sent ? (
+        <p className="rounded-md bg-accent px-3 py-2 text-sm text-accent-foreground">
+          If there is an account for {email.trim()}, a reset link is on its way. Check your spam folder if you do not see it.
+        </p>
+      ) : (
+        <form className="flex flex-col gap-4" noValidate onSubmit={(e) => { e.preventDefault(); void send() }}>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="reset-email">Email</Label>
+            <Input id="reset-email" type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+          </div>
+          <Button type="submit" size="lg" disabled={busy}>{busy ? 'One moment…' : 'Send reset link'}</Button>
+        </form>
+      )}
+      <button type="button" onClick={onBack} className="self-start text-sm font-medium text-primary underline underline-offset-4">
+        Back to sign in
+      </button>
+    </main>
+  )
 }

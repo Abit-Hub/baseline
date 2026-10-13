@@ -1,15 +1,16 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
-import { Copy } from 'lucide-react'
+import { Copy, MessageCircle, Share2 } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { useLog } from '@/components/log-context'
 import { ThemeToggle } from '@/components/theme-toggle'
 import { ConfirmButton, PageHeader, Section } from '@/components/ui-bits'
-import { Button } from '@/components/ui/button'
+import { Button, buttonVariants } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useLeaveLog, useRemoveCoach, useRotateInvite, useUpdateLog } from '@/data/queries'
+import { inviteMessage, whatsappUrl } from '@/lib/invite'
 import { supabase } from '@/lib/supabase'
 
 export const Route = createFileRoute('/_app/settings')({ component: Settings })
@@ -54,6 +55,17 @@ function Settings() {
         <Section title="Invite your coach" className={top()}
           hint="Anyone with this link can join your log as a coach. Send it only to the person who trains you.">
           <div className="flex flex-col gap-3">
+            <div className="flex flex-wrap gap-2">
+              <a href={whatsappUrl(link)} target="_blank" rel="noreferrer" className={buttonVariants({ size: 'lg' })}>
+                <MessageCircle /> Send on WhatsApp
+              </a>
+              {typeof navigator !== 'undefined' && 'share' in navigator && (
+                <Button type="button" size="lg" variant="outline"
+                  onClick={() => void navigator.share({ title: 'Baseline', text: inviteMessage(link) }).catch(() => undefined)}>
+                  <Share2 /> Share
+                </Button>
+              )}
+            </div>
             <Label htmlFor="invite-link" className="sr-only">Coach invite link</Label>
             <div className="flex gap-2">
               <Input id="invite-link" readOnly value={link} onFocus={(e) => e.currentTarget.select()} />

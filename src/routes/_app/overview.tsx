@@ -3,6 +3,7 @@ import { Link, createFileRoute } from '@tanstack/react-router'
 import { format, parseISO } from 'date-fns'
 import { useSetAtom } from 'jotai'
 import { NoteComposer, NoteList } from '@/components/coach-notes'
+import { GetStarted } from '@/components/get-started'
 import { useLog } from '@/components/log-context'
 import { RatingChart } from '@/components/rating-chart'
 import { EmptyState, PageHeader, Section } from '@/components/ui-bits'
@@ -15,7 +16,7 @@ import { sessionEditorAtom } from '@/state/atoms'
 export const Route = createFileRoute('/_app/overview')({ component: Overview })
 
 function Overview() {
-  const { log, isPlayer, isCoach, playerName } = useLog()
+  const { log, isPlayer, isCoach, playerName, members } = useLog()
   const setEditor = useSetAtom(sessionEditorAtom)
   const sessions = useQuery(rowsQuery('sessions', log.id))
   const drills = useQuery(rowsQuery('drills', log.id))
@@ -47,12 +48,18 @@ function Overview() {
             {dayLabel(next.date)}, {timeRange(next.start, next.end)}
           </Link>
         </p>
-      ) : schedule.data.slots.length === 0 && (
+      ) : schedule.data.slots.length === 0 && isCoach && (
         <p className="-mt-4 mb-8 text-sm">
           <Link to="/schedule" className="font-medium text-primary underline underline-offset-4">Add your training times</Link>
           <span className="text-muted-foreground"> so you both can see what is next.</span>
         </p>
       ))}
+
+      {isPlayer && sessions.isSuccess && schedule.isSuccess && (
+        <GetStarted hasTimes={schedule.data.slots.length > 0} hasSession={list.length > 0}
+          hasCoach={members.some((m) => m.role === 'coach')}
+          onLogSession={() => setEditor({ open: true, session: null })} />
+      )}
 
       {sessions.isSuccess && list.length === 0 ? (
         <EmptyState title="Nothing logged yet">
@@ -119,7 +126,7 @@ function Overview() {
       {(goals.data?.length ?? 0) > 0 && (
         <Section title="Goals">
           <p className="text-sm text-muted-foreground">{goalsDone} of {goals.data?.length} goals reached.</p>
-          <Link to="/goals" className="mt-3 inline-block text-sm font-medium text-primary underline underline-offset-4">
+          <Link to="/plan" search={{ tab: 'goals' }} className="mt-3 inline-block text-sm font-medium text-primary underline underline-offset-4">
             Open goals
           </Link>
         </Section>
