@@ -1,0 +1,9 @@
+[build]
+  command = "pnpm build"
+  publish = "dist"
+
+# Single-page app: every path loads index.html, so /overview and /join/abc123 work on refresh and in shared links.
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
