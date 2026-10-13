@@ -9,19 +9,17 @@ import { rowsQuery, useScheduleActions, type SlotInput } from '@/data/queries'
 import { RATINGS } from '@/domain/constants'
 import { WEEKDAYS_SHORT, WEEK_ORDER, dayLabel, hhmm, isoDate, timeRange, type Occurrence } from '@/domain/schedule'
 import { agoLabel, sortSessions } from '@/domain/stats'
-import type { ScheduleSlot } from '@/domain/types'
+import type { ScheduleSlot, Session } from '@/domain/types'
 import { cn } from '@/lib/utils'
 
-/** What a coach wants in front of them before a session: where the player left off. */
-export function PrepCard({ logId }: { logId: string }) {
-  const sessions = useQuery(rowsQuery('sessions', logId))
-  const notes = useQuery(rowsQuery('coach_notes', logId))
-  const goals = useQuery(rowsQuery('goals', logId))
-  const latest = sortSessions(sessions.data ?? [])[0]
-  const lastNote = notes.data?.[0]
-  const open = (goals.data ?? []).filter((g) => !g.done).slice(0, 3)
+export interface PrepData {
+  latest: Session | undefined
+  lastNote: string | undefined
+  openGoals: string[]
+}
 
-  if (sessions.isPending) return <p className="text-sm text-muted-foreground">Loading…</p>
+/** What a coach wants in front of them before a session: where the player left off. */
+export function PrepView({ latest, lastNote, openGoals }: PrepData) {
   return (
     <dl className="flex flex-col gap-3 text-sm">
       <Fact label={latest ? `Last session · ${agoLabel(latest.session_date).toLowerCase()}${latest.rating ? ` · felt ${RATINGS[latest.rating - 1].toLowerCase()}` : ''}` : 'Last session'}>
@@ -32,9 +30,22 @@ export function PrepCard({ logId }: { logId: string }) {
           </>
         ) : 'Nothing logged yet.'}
       </Fact>
-      {lastNote && <Fact label="Your last note">{lastNote.note}</Fact>}
-      {open.length > 0 && <Fact label="Open goals">{open.map((g) => g.text).join(' · ')}</Fact>}
+      {lastNote && <Fact label="Your last note">{lastNote}</Fact>}
+      {openGoals.length > 0 && <Fact label="Open goals">{openGoals.join(' · ')}</Fact>}
     </dl>
+  )
+}
+
+export function PrepCard({ logId }: { logId: string }) {
+  const sessions = useQuery(rowsQuery('sessions', logId))
+  const notes = useQuery(rowsQuery('coach_notes', logId))
+  const goals = useQuery(rowsQuery('goals', logId))
+  if (sessions.isPending) return <p className="text-sm text-muted-foreground">Loading…</p>
+  return (
+    <PrepView
+      latest={sortSessions(sessions.data ?? [])[0]}
+      lastNote={notes.data?.[0]?.note}
+      openGoals={(goals.data ?? []).filter((g) => !g.done).slice(0, 3).map((g) => g.text)} />
   )
 }
 
@@ -47,26 +58,31 @@ function Fact({ label, children }: { label: string; children: ReactNode }) {
   )
 }
 
-/** One training time. Tap to open: prep notes, cancel, move. */
-export function OccurrenceRow({ occ, title, showPrep, onOpenLog }: {
+export interface OccurrenceActions {
+  cancel: () => void
+  restore: () => void
+  move: (v: { date: string; start: string; end: string | null }) => void
+  pending?: boolean
+}
+
+/** One training time. Tap to open: prep notes, cancel, move. Knows nothing about where data lives. */
+export function OccurrenceView({ occ, title, prep, actions, onOpenLog }: {
   occ: Occurrence
   title: string
-  showPrep?: boolean
+  prep?: ReactNode
+  actions: OccurrenceActions
   onOpenLog?: () => void
 }) {
   const [open, setOpen] = useState(false)
   const [moving, setMoving] = useState(false)
-  const { setOverride, clearOverride } = useScheduleActions(occ.logId)
 
   const move = useForm({
     defaultValues: { date: occ.date, start: occ.start, end: occ.end ?? '' },
     onSubmit: ({ value }) => {
       if (!value.date || !value.start) return
       if (value.end && value.end <= value.start) return void toast.error('The end time must be after the start time')
-      setOverride.mutate(
-        { slot_id: occ.slotId, on_date: occ.baseDate, new_date: value.date, new_start: value.start, new_end: value.end || null },
-        { onSuccess: () => { setMoving(false); toast.success('Session moved') } },
-      )
+      actions.move({ date: value.date, start: value.start, end: value.end || null })
+      setMoving(false)
     },
   })
 
@@ -74,7 +90,7 @@ export function OccurrenceRow({ occ, title, showPrep, onOpenLog }: {
     <div className="py-3">
       <button type="button" aria-expanded={open} onClick={() => setOpen((v) => !v)}
         className="flex w-full items-center gap-3 text-left">
-        <span className={cn('tabular w-28 shrink-0 text-sm', occ.cancelled && 'text-muted-foreground line-through')}>
+        <span className={cn('tabular w-36 shrink-0 text-sm', occ.cancelled && 'text-muted-foreground line-through')}>
           {timeRange(occ.start, occ.end)}
         </span>
         <span className={cn('min-w-0 flex-1 truncate font-medium', occ.cancelled && 'text-muted-foreground line-through')}>
@@ -88,7 +104,7 @@ export function OccurrenceRow({ occ, title, showPrep, onOpenLog }: {
 
       {open && (
         <div className="mt-3 flex flex-col gap-4 rounded-md bg-muted/50 p-3">
-          {showPrep && !occ.cancelled && <PrepCard logId={occ.logId} />}
+          {!occ.cancelled && prep}
 
           {moving ? (
             <form className="flex flex-wrap items-end gap-2" onSubmit={(e) => { e.preventDefault(); void move.handleSubmit() }}>
@@ -101,27 +117,18 @@ export function OccurrenceRow({ occ, title, showPrep, onOpenLog }: {
               <move.Field name="end">
                 {(f) => <Input aria-label="New end time (optional)" type="time" className="w-32" value={f.state.value} onChange={(e) => f.handleChange(e.target.value)} />}
               </move.Field>
-              <Button type="submit" size="sm" disabled={setOverride.isPending}>Save</Button>
+              <Button type="submit" size="sm" disabled={actions.pending}>Save</Button>
               <Button type="button" size="sm" variant="ghost" onClick={() => setMoving(false)}>Back</Button>
             </form>
           ) : (
             <div className="flex flex-wrap gap-2">
               {onOpenLog && <Button size="sm" onClick={onOpenLog}>Open log</Button>}
               {occ.cancelled || occ.moved ? (
-                <Button size="sm" variant="outline" disabled={clearOverride.isPending}
-                  onClick={() => occ.overrideId && clearOverride.mutate(occ.overrideId, { onSuccess: () => toast.success('Back to the usual time') })}>
-                  Back to the usual time
-                </Button>
+                <Button size="sm" variant="outline" disabled={actions.pending} onClick={actions.restore}>Back to the usual time</Button>
               ) : (
                 <>
                   <Button size="sm" variant="outline" onClick={() => setMoving(true)}>Move</Button>
-                  <Button size="sm" variant="outline" disabled={setOverride.isPending}
-                    onClick={() => setOverride.mutate(
-                      { slot_id: occ.slotId, on_date: occ.baseDate, new_date: null, new_start: null, new_end: null },
-                      { onSuccess: () => toast.success('Session cancelled for this date') },
-                    )}>
-                    Cancel this one
-                  </Button>
+                  <Button size="sm" variant="outline" disabled={actions.pending} onClick={actions.cancel}>Cancel this one</Button>
                 </>
               )}
             </div>
@@ -129,6 +136,30 @@ export function OccurrenceRow({ occ, title, showPrep, onOpenLog }: {
         </div>
       )}
     </div>
+  )
+}
+
+/** The real thing: reads prep notes from, and saves changes to, the player's log. */
+export function OccurrenceRow({ occ, title, showPrep, onOpenLog }: {
+  occ: Occurrence
+  title: string
+  showPrep?: boolean
+  onOpenLog?: () => void
+}) {
+  const { setOverride, clearOverride } = useScheduleActions(occ.logId)
+  const cancelled = { slot_id: occ.slotId, on_date: occ.baseDate, new_date: null, new_start: null, new_end: null }
+  return (
+    <OccurrenceView occ={occ} title={title} onOpenLog={onOpenLog}
+      prep={showPrep ? <PrepCard logId={occ.logId} /> : undefined}
+      actions={{
+        pending: setOverride.isPending || clearOverride.isPending,
+        cancel: () => setOverride.mutate(cancelled, { onSuccess: () => toast.success('Session cancelled for this date') }),
+        restore: () => occ.overrideId && clearOverride.mutate(occ.overrideId, { onSuccess: () => toast.success('Back to the usual time') }),
+        move: (v) => setOverride.mutate(
+          { slot_id: occ.slotId, on_date: occ.baseDate, new_date: v.date, new_start: v.start, new_end: v.end },
+          { onSuccess: () => toast.success('Session moved') },
+        ),
+      }} />
   )
 }
 

@@ -85,7 +85,7 @@ export function Hero({ signedIn }: { signedIn: boolean }) {
           </p>
           <div className="rise mt-9 flex flex-wrap items-center gap-3" style={delay(1050)}>
             <Cta signedIn={signedIn} />
-            <a href="#how" className={buttonVariants({ variant: 'outline', size: 'lg' })}>See how it works</a>
+            <Link to="/demo" className={buttonVariants({ variant: 'outline', size: 'lg' })}>See the coach view</Link>
           </div>
           <p className="rise mt-5 text-sm text-muted-foreground" style={delay(1200)}>Works on your phone. Your coach joins with one link.</p>
         </div>
@@ -303,7 +303,10 @@ export function ForCoaches({ signedIn }: { signedIn: boolean }) {
             </Reveal>
           ))}
         </ul>
-        <Reveal delay={200} className="mt-10"><Cta signedIn={signedIn} label="Invite your coach" /></Reveal>
+        <Reveal delay={200} className="mt-10 flex flex-wrap gap-3">
+          <Link to="/demo" className={buttonVariants({ size: 'lg' })}>Try the coach demo</Link>
+          <Cta signedIn={signedIn} label="Create an account" />
+        </Reveal>
       </div>
 
       <Reveal delay={120}>
