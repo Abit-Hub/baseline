@@ -1,13 +1,17 @@
 import { useQuery } from '@tanstack/react-query'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { addDays } from 'date-fns'
-import { AlertCircle, Users } from 'lucide-react'
+import { AlertCircle, Copy, MessageCircle } from 'lucide-react'
+import { toast } from 'sonner'
+import { FeedbackForm } from '@/components/feedback'
 import { useLog } from '@/components/log-context'
 import { DayGroups, OccurrenceRow } from '@/components/schedule'
-import { EmptyState, ListSkeleton, PageHeader, Section } from '@/components/ui-bits'
+import { ListSkeleton, PageHeader, Section } from '@/components/ui-bits'
+import { Button, buttonVariants } from '@/components/ui/button'
 import { myPlayersQuery, scheduleQuery } from '@/data/queries'
 import { attentionFor, endsAt, isoDate, occurrences } from '@/domain/schedule'
 import { agoLabel } from '@/domain/stats'
+import { askPlayerMessage, whatsappTextUrl } from '@/lib/invite'
 import { cn } from '@/lib/utils'
 
 export const Route = createFileRoute('/_app/players')({ component: Players })
@@ -51,11 +55,7 @@ function Players() {
         eyebrow={`${players.length} ${players.length === 1 ? 'player' : 'players'}${needAttention ? ` · ${needAttention} to look at` : ''}`}
         title="Players" />
       {error && <p className="text-sm text-destructive">Could not load your players: {error.message}</p>}
-      {!isPending && !error && players.length === 0 && (
-        <EmptyState title="No players yet" icon={Users}>
-          Ask a player to send you their coach link from Settings. Open it while signed in and tap “Join this log as coach”.
-        </EmptyState>
-      )}
+      {!isPending && !error && players.length === 0 && <FirstPlayer />}
       {isPending && <ListSkeleton rows={4} />}
 
       {players.length > 0 && (
@@ -114,6 +114,43 @@ function Players() {
           </p>
         </Section>
       )}
+
+      <Section title="Tell us what to fix" hint="Something confusing or missing? It goes straight to the person building Baseline.">
+        <FeedbackForm />
+      </Section>
     </>
+  )
+}
+
+/** What a coach with no players yet sees: three steps and a message ready to send. */
+function FirstPlayer() {
+  const message = askPlayerMessage(window.location.origin)
+  const steps = [
+    ['Ask a player to sign up', 'Send them this message. It has the sign-up link.'],
+    ['They send you their coach link', 'From their Settings, one tap on WhatsApp.'],
+    ['Open it and tap “Join this log as coach”', 'Make sure you are signed in first. They appear here straight away.'],
+  ]
+  return (
+    <div className="rounded-xl border bg-card p-5 sm:p-6">
+      <h2 className="text-3xl">Add your first player</h2>
+      <ol className="mt-5 flex flex-col gap-4">
+        {steps.map(([title, body], i) => (
+          <li key={title} className="flex gap-3.5">
+            <span className="grid size-7 shrink-0 place-items-center rounded-full border font-display text-lg text-primary">{i + 1}</span>
+            <span><span className="block font-medium">{title}</span><span className="text-sm text-muted-foreground">{body}</span></span>
+          </li>
+        ))}
+      </ol>
+      <p className="mt-6 rounded-lg bg-muted/60 p-3.5 text-sm text-muted-foreground">{message}</p>
+      <div className="mt-3 flex flex-wrap gap-2">
+        <a href={whatsappTextUrl(message)} target="_blank" rel="noreferrer" className={buttonVariants({ size: 'lg' })}>
+          <MessageCircle /> Send on WhatsApp
+        </a>
+        <Button type="button" size="lg" variant="outline"
+          onClick={() => void navigator.clipboard.writeText(message).then(() => toast.success('Message copied'), () => toast.error('Copy failed'))}>
+          <Copy /> Copy message
+        </Button>
+      </div>
+    </div>
   )
 }

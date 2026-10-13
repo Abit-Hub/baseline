@@ -3,6 +3,7 @@ import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { Copy, MessageCircle, Share2 } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
+import { FeedbackForm } from '@/components/feedback'
 import { useLog } from '@/components/log-context'
 import { ThemeToggle } from '@/components/theme-toggle'
 import { ConfirmButton, PageHeader, Section } from '@/components/ui-bits'
@@ -122,6 +123,10 @@ function Settings() {
           </form>
         </Section>
       )}
+
+      <Section title="Tell us what to fix" hint="Baseline is new. If something confuses you or you wish it did more, say so here. It goes straight to the person building it.">
+        <FeedbackForm />
+      </Section>
 
       <Section title="Appearance">
         <ThemeToggle />
