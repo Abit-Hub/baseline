@@ -9,10 +9,13 @@ export const activeLogIdAtom = atomWithStorage<string | null>('baseline-active-l
 export const focusFilterAtom = atom<string | null>(null)
 
 /** The session editor is opened from several pages, so its state lives here. */
-export const sessionEditorAtom = atom<{ open: boolean; session: import('@/domain/types').Session | null }>({
+export const sessionEditorAtom = atom<{ open: boolean; session: import('@/domain/types').Session | null; date?: string }>({
   open: false,
   session: null,
 })
 
 /** The coach's quick note box, opened from the header. */
 export const noteDialogAtom = atom(false)
+
+/** Session prompts the player has chosen to skip, so they do not come back. */
+export const dismissedPromptsAtom = atomWithStorage<string[]>('baseline-dismissed-prompts', [])

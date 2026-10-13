@@ -4,6 +4,7 @@ import { format, parseISO } from 'date-fns'
 import { useSetAtom } from 'jotai'
 import { NoteComposer, NoteList } from '@/components/coach-notes'
 import { GetStarted } from '@/components/get-started'
+import { SessionPrompt } from '@/components/session-prompt'
 import { useLog } from '@/components/log-context'
 import { RatingChart } from '@/components/rating-chart'
 import { EmptyState, PageHeader, Section } from '@/components/ui-bits'
@@ -11,6 +12,7 @@ import { Button } from '@/components/ui/button'
 import { rowsQuery, scheduleQuery } from '@/data/queries'
 import { dayLabel, endsAt, occurrences, timeRange } from '@/domain/schedule'
 import { agoLabel, countWithin, daysAgo, focusCounts, recentAverage, sortSessions, trend } from '@/domain/stats'
+import { useNow } from '@/lib/use-now'
 import { sessionEditorAtom } from '@/state/atoms'
 
 export const Route = createFileRoute('/_app/overview')({ component: Overview })
@@ -23,7 +25,7 @@ function Overview() {
   const goals = useQuery(rowsQuery('goals', log.id))
   const notes = useQuery(rowsQuery('coach_notes', log.id))
   const schedule = useQuery(scheduleQuery(log.id))
-  const nowDate = new Date()
+  const nowDate = useNow()
   const next = occurrences(schedule.data?.slots ?? [], schedule.data?.overrides ?? [], nowDate, 14)
     .find((o) => !o.cancelled && endsAt(o) >= nowDate)
 
@@ -54,6 +56,10 @@ function Overview() {
           <span className="text-muted-foreground"> so you both can see what is next.</span>
         </p>
       ))}
+
+      {isPlayer && sessions.isSuccess && schedule.isSuccess && (
+        <SessionPrompt logId={log.id} slots={schedule.data.slots} overrides={schedule.data.overrides} sessions={sessions.data} now={nowDate} />
+      )}
 
       {isPlayer && sessions.isSuccess && schedule.isSuccess && (
         <GetStarted hasTimes={schedule.data.slots.length > 0} hasSession={list.length > 0}

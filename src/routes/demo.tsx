@@ -38,6 +38,7 @@ function Demo() {
       session_count: mine.length, last_session: mine[0]?.session_date ?? null,
       avg_recent: recentAverage(mine, 5) ? Number(recentAverage(mine, 5)!.toFixed(1)) : null,
       last_note: lastNote,
+      unseen_notes: notes.filter((n) => n.log_id === p.id && !n.acknowledged_at).length,
     }
   })
 
@@ -132,6 +133,11 @@ function Demo() {
                     <span className="mt-0.5 block text-sm text-muted-foreground">
                       {p.last_session ? `Last session ${agoLabel(p.last_session).toLowerCase()}` : 'No sessions logged yet'}
                     </span>
+                    {p.unseen_notes > 0 && (
+                      <span className="mt-0.5 block text-sm text-muted-foreground">
+                        {p.unseen_notes === 1 ? 'Your last note has not been seen yet' : `${p.unseen_notes} notes not seen yet`}
+                      </span>
+                    )}
                     {reasons.map((r) => (
                       <span key={r} className="mt-0.5 flex items-center gap-1 text-sm text-destructive">
                         <AlertCircle className="size-3.5 shrink-0" aria-hidden /> {r}
@@ -188,6 +194,7 @@ function Demo() {
                 <li key={n.id} className="border-l-2 border-primary pl-3 text-sm">
                   <span className="text-xs tracking-wide text-muted-foreground uppercase">{format(parseISO(n.created_at), 'd MMM')}</span>
                   <p className="mt-0.5">{n.note}</p>
+                  <p className="mt-1 text-xs text-muted-foreground">{n.acknowledged_at ? `Seen ${format(parseISO(n.acknowledged_at), 'd MMM')}` : 'Not seen yet'}</p>
                 </li>
               ))}
             </ul>
@@ -197,7 +204,7 @@ function Demo() {
       </Dialog>
 
       <NoteBox players={data.players} playerId={noteFor} onClose={() => setNoteFor(null)} onSave={(logId, note) => {
-        setExtraNotes((cur) => [{ id: `new-${cur.length}`, log_id: logId, session_id: null, note, author_id: 'coach', created_at: new Date().toISOString() }, ...cur])
+        setExtraNotes((cur) => [{ id: `new-${cur.length}`, log_id: logId, session_id: null, note, author_id: 'coach', created_at: new Date().toISOString(), acknowledged_at: null }, ...cur])
         toast.success(`Note added for ${nameOf(logId)}`)
         setNoteFor(null)
       }} />

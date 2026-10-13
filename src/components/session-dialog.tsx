@@ -44,7 +44,7 @@ export function SessionDialog() {
           </DialogDescription>
         </DialogHeader>
         {isPlayer ? (
-          <SessionForm key={editor.session?.id ?? 'new'} session={editor.session} onDone={close} />
+          <SessionForm key={editor.session?.id ?? `new-${editor.date ?? ''}`} session={editor.session} date={editor.date} onDone={close} />
         ) : (
           editor.session && <SessionReadOnly session={editor.session} />
         )}
@@ -54,7 +54,7 @@ export function SessionDialog() {
   )
 }
 
-function SessionForm({ session, onDone }: { session: Session | null; onDone: () => void }) {
+function SessionForm({ session, date, onDone }: { session: Session | null; date?: string; onDone: () => void }) {
   const { log } = useLog()
   const insert = useInsertRow('sessions', log.id)
   const update = useUpdateRow('sessions', log.id)
@@ -62,7 +62,7 @@ function SessionForm({ session, onDone }: { session: Session | null; onDone: () 
 
   const form = useForm({
     defaultValues: {
-      session_date: session?.session_date ?? format(new Date(), 'yyyy-MM-dd'),
+      session_date: session?.session_date ?? date ?? format(new Date(), 'yyyy-MM-dd'),
       focus: session?.focus ?? ([] as string[]),
       rating: session?.rating ?? 0,
       worked: session?.worked ?? '',

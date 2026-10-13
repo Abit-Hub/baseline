@@ -85,6 +85,11 @@ function Players() {
                     <span className="mt-0.5 block text-sm text-muted-foreground">
                       {p.last_session ? `Last session ${agoLabel(p.last_session).toLowerCase()}` : 'No sessions logged yet'}
                     </span>
+                    {p.unseen_notes > 0 && (
+                      <span className="mt-0.5 block text-sm text-muted-foreground">
+                        {p.unseen_notes === 1 ? 'Your last note has not been seen yet' : `${p.unseen_notes} notes not seen yet`}
+                      </span>
+                    )}
                     {reasons.map((r) => (
                       <span key={r} className={cn('mt-0.5 flex items-center gap-1 text-sm text-destructive')}>
                         <AlertCircle className="size-3.5 shrink-0" aria-hidden /> {r}

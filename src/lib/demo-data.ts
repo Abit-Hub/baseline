@@ -117,6 +117,8 @@ export function buildDemo() {
     }))
     p.notes.forEach(([ago, note], i) => notes.push({
       id: `${p.id}-n-${i}`, log_id: p.id, session_id: null, note, author_id: 'coach', created_at: when(ago, '18:00:00'),
+      // One note is still unseen, so the demo shows the coach what that looks like.
+      acknowledged_at: p.id === 'amaka' ? null : when(ago, '21:00:00'),
     }))
   }
   return { players: PLAYERS.map(({ id, name }) => ({ id, name })), slots, sessions, goals, notes }

@@ -1,17 +1,19 @@
 import { useQuery } from '@tanstack/react-query'
 import { format, parseISO } from 'date-fns'
+import { Check } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { useLog } from '@/components/log-context'
 import { ConfirmButton } from '@/components/ui-bits'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
-import { rowsQuery, useDeleteRow, useInsertRow } from '@/data/queries'
+import { rowsQuery, useAcknowledgeNote, useDeleteRow, useInsertRow } from '@/data/queries'
 import type { CoachNote } from '@/domain/types'
 
 export function NoteList({ notes, showSession }: { notes: CoachNote[]; showSession?: Map<string, string> }) {
-  const { log, user, nameOf } = useLog()
+  const { log, user, nameOf, isPlayer } = useLog()
   const remove = useDeleteRow('coach_notes', log.id)
+  const acknowledge = useAcknowledgeNote(log.id)
   return (
     <ul className="flex flex-col gap-4">
       {notes.map((n) => (
@@ -21,6 +23,16 @@ export function NoteList({ notes, showSession }: { notes: CoachNote[]; showSessi
             {showSession && n.session_id && showSession.get(n.session_id) && ` · session of ${showSession.get(n.session_id)}`}
           </p>
           <p className="mt-1 whitespace-pre-wrap [overflow-wrap:anywhere]">{n.note}</p>
+          {isPlayer && !n.acknowledged_at && (
+            <Button size="sm" variant="outline" className="mt-2" disabled={acknowledge.isPending} onClick={() => acknowledge.mutate(n.id)}>
+              <Check /> Got it
+            </Button>
+          )}
+          {n.acknowledged_at ? (
+            <p className="mt-1.5 flex items-center gap-1 text-xs text-muted-foreground">
+              <Check className="size-3" /> {isPlayer ? 'Got it' : `Seen ${format(parseISO(n.acknowledged_at), 'd MMM')}`}
+            </p>
+          ) : !isPlayer && <p className="mt-1.5 text-xs text-muted-foreground">Not seen yet</p>}
           {n.author_id === user.id && (
             <ConfirmButton variant="ghost" size="xs" className="mt-1 -ml-2" armedLabel="Tap again to delete"
               onConfirm={() => remove.mutate(n.id, { onSuccess: () => toast.success('Note deleted') })}>

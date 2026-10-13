@@ -174,6 +174,27 @@ export function useScheduleActions(logId: string) {
   }
 }
 
+/** The player taps "Got it" on a coach's note. The database only lets the player do this. */
+export function useAcknowledgeNote(logId: string) {
+  const qc = useQueryClient()
+  const key = ['coach_notes', logId]
+  return useMutation({
+    mutationFn: async (id: string) => check(await supabase.rpc('acknowledge_note', { _id: id })),
+    onMutate: async (id) => {
+      await qc.cancelQueries({ queryKey: key })
+      const previous = qc.getQueryData<CoachNote[]>(key)
+      qc.setQueryData<CoachNote[]>(key, (rows) =>
+        rows?.map((n) => (n.id === id ? { ...n, acknowledged_at: new Date().toISOString() } : n)))
+      return { previous }
+    },
+    onError: (_e, _v, ctx) => ctx?.previous && qc.setQueryData(key, ctx.previous),
+    onSettled: () => {
+      void qc.invalidateQueries({ queryKey: key })
+      void qc.invalidateQueries({ queryKey: ['players'] })
+    },
+  })
+}
+
 /* ------------------------------------------------------------ log actions */
 
 export function useCreateLog() {

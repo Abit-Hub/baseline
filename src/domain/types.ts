@@ -55,6 +55,8 @@ export interface CoachNote {
   note: string
   author_id: string | null
   created_at: string
+  /** When the player tapped "Got it". Null until then. */
+  acknowledged_at: string | null
 }
 
 /** One row of the coach dashboard (the my_players() database function). */
@@ -67,6 +69,8 @@ export interface PlayerSummary {
   last_session: string | null
   avg_recent: number | null
   last_note: string | null
+  /** Notes the player has not marked as seen. */
+  unseen_notes: number
 }
 
 export interface Membership {
