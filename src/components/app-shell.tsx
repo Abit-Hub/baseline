@@ -66,7 +66,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         style={{ gridTemplateColumns: `repeat(${nav.length}, minmax(0, 1fr))` }}>
         {nav.map(({ to, label, Icon, exact }) => (
           <Link key={to} to={to} activeOptions={{ exact }} activeProps={linkActive}
-            className={`${linkBase} flex-col gap-0.5 rounded-none py-2 text-[10px]`}>
+            className={`${linkBase} flex-col gap-0.5 rounded-none py-2 text-[11px]`}>
             <Icon className="size-5" />
             <span className="max-w-full truncate px-0.5">{label.split(' ')[0]}</span>
           </Link>

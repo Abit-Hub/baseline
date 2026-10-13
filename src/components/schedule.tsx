@@ -3,6 +3,7 @@ import { useForm } from '@tanstack/react-form'
 import { ChevronDown } from 'lucide-react'
 import { useState, type ReactNode } from 'react'
 import { toast } from 'sonner'
+import { Skeleton } from '@/components/ui-bits'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { rowsQuery, useScheduleActions, type SlotInput } from '@/data/queries'
@@ -40,7 +41,7 @@ export function PrepCard({ logId }: { logId: string }) {
   const sessions = useQuery(rowsQuery('sessions', logId))
   const notes = useQuery(rowsQuery('coach_notes', logId))
   const goals = useQuery(rowsQuery('goals', logId))
-  if (sessions.isPending) return <p className="text-sm text-muted-foreground">Loading…</p>
+  if (sessions.isPending) return <Skeleton className="h-14 w-full" />
   return (
     <PrepView
       latest={sortSessions(sessions.data ?? [])[0]}

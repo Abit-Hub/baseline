@@ -4,6 +4,7 @@ import { useAtomValue } from 'jotai'
 import { AppShell } from '@/components/app-shell'
 import { LogProvider } from '@/components/log-context'
 import { Onboarding } from '@/components/onboarding'
+import { ListSkeleton, Skeleton } from '@/components/ui-bits'
 import { logsQuery, myMembershipsQuery } from '@/data/queries'
 import type { Role } from '@/domain/types'
 import { supabase } from '@/lib/supabase'
@@ -28,7 +29,13 @@ function AppLayout() {
   if (error) return <p className="p-6 text-destructive">Could not load your log: {error.message}</p>
   const logs = logsQ.data
   const mine = memberships.data
-  if (!logs || !mine) return <p className="p-6 text-muted-foreground">Opening your log…</p>
+  if (!logs || !mine) return (
+    <div role="status" aria-label="Opening your log" className="mx-auto max-w-3xl space-y-8 px-4 py-8">
+      <Skeleton className="h-8 w-40" />
+      <Skeleton className="h-28 w-full rounded-lg" />
+      <ListSkeleton rows={3} />
+    </div>
+  )
   if (!logs.length) return <Onboarding />
 
   const roles: Record<string, Role> = Object.fromEntries(mine.map((m) => [m.log_id, m.role]))

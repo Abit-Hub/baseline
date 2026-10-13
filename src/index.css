@@ -3,6 +3,7 @@
 @import "shadcn/tailwind.css";
 @import "@fontsource-variable/geist";
 @import "@fontsource/instrument-serif";
+@import "@fontsource/instrument-serif/400-italic.css";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -63,13 +64,13 @@
     --secondary: oklch(0.955 0.01 265);
     --secondary-foreground: oklch(0.28 0.04 270);
     --muted: oklch(0.96 0.005 255);
-    --muted-foreground: oklch(0.5 0.02 262);
+    --muted-foreground: oklch(0.44 0.02 262);
     --accent: oklch(0.945 0.03 275);
     --accent-foreground: oklch(0.3 0.1 275);
     --destructive: oklch(0.55 0.2 27);
     --border: oklch(0.915 0.008 262);
     --input: oklch(0.89 0.01 262);
-    --ring: oklch(0.55 0.15 275);
+    --ring: oklch(0.5 0.17 275);
     --chart-1: oklch(0.42 0.17 275);
     --chart-2: oklch(0.6 0.12 275);
     --chart-3: oklch(0.72 0.08 275);
@@ -135,6 +136,8 @@
 @layer base {
   h1, h2, h3 { font-family: var(--font-display); font-weight: 400; letter-spacing: -0.01em; text-wrap: balance; }
   .tabular { font-variant-numeric: tabular-nums; }
+  /* Plain links and buttons get a clear keyboard focus ring. Styled controls bring their own. */
+  a:focus-visible, button:focus-visible, [role='tab']:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; border-radius: 4px; }
   @media (prefers-reduced-motion: no-preference) { html { scroll-behavior: smooth; } }
   @media (prefers-reduced-motion: reduce) { * { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; } }
 }
@@ -174,6 +177,35 @@
   .fade-after { opacity: 0; }
   .in-view .fade-after { animation: fade 0.8s ease forwards; animation-delay: var(--d, 1s); }
 
+  /* A highlighter swipe that draws itself behind a word. */
+  .marker { isolation: isolate; }
+  .marker::before {
+    content: '';
+    position: absolute;
+    z-index: -1;
+    inset-inline: -0.08em;
+    bottom: 0.06em;
+    height: 0.42em;
+    border-radius: 0.1em;
+    background: oklch(0.9 0.16 100 / 0.45);
+    transform: scaleX(0);
+    transform-origin: left;
+  }
+  .dark .marker::before { background: oklch(0.8 0.13 100 / 0.22); }
+  .in-view .marker::before { animation: marker 0.9s cubic-bezier(0.5, 0, 0.2, 1) 0.9s forwards; }
+  .dots {
+    background-image: radial-gradient(color-mix(in oklab, var(--foreground) 11%, transparent) 1px, transparent 1px);
+    background-size: 22px 22px;
+  }
+
+  /* The ball that lands at the end of the hero headline and settles. */
+  .hero-ball { transform-origin: 50% 100%; animation: ball-drop 2.1s linear 1s both; }
+  /* Doodles draw stroke by stroke. Each stroke needs pathLength="1". */
+  .doodle-draw > * { stroke-dasharray: 1; stroke-dashoffset: 1; }
+  .in-view .doodle-draw > * { animation: draw 1.4s cubic-bezier(0.5, 0, 0.2, 1) forwards; }
+  .in-view .doodle-draw > :nth-child(2) { animation-delay: 0.35s; }
+  .in-view .doodle-draw > :nth-child(3) { animation-delay: 0.7s; }
+
   .tick-loop { stroke-dasharray: 1; stroke-dashoffset: 1; animation: tick-loop 7s ease infinite; animation-delay: var(--d, 0s); }
   .travel { animation: travel 2.4s ease-in-out infinite; }
   .ping-ring { animation: ping-ring 2.4s cubic-bezier(0, 0, 0.2, 1) infinite; }
@@ -181,6 +213,19 @@
 }
 
 @keyframes rise { from { opacity: 0; transform: translateY(0.6em) rotate(1.5deg); } to { opacity: 1; transform: none; } }
+@keyframes ball-drop {
+  0% { transform: translateY(-5.5em); animation-timing-function: cubic-bezier(0.55, 0, 1, 0.45); }
+  30% { transform: translateY(0) scale(1.18, 0.78); animation-timing-function: ease-out; }
+  34% { transform: translateY(0) scale(1, 1); animation-timing-function: ease-out; }
+  50% { transform: translateY(-2em); animation-timing-function: cubic-bezier(0.55, 0, 1, 0.45); }
+  62% { transform: translateY(0) scale(1.12, 0.86); animation-timing-function: ease-out; }
+  65% { transform: translateY(0); animation-timing-function: ease-out; }
+  76% { transform: translateY(-0.8em); animation-timing-function: cubic-bezier(0.55, 0, 1, 0.45); }
+  85% { transform: translateY(0) scale(1.06, 0.93); animation-timing-function: ease-out; }
+  91% { transform: translateY(-0.25em); animation-timing-function: cubic-bezier(0.55, 0, 1, 0.45); }
+  100% { transform: translateY(0); }
+}
+@keyframes marker { to { transform: scaleX(1); } }
 @keyframes pop { from { opacity: 0; transform: scale(0.6); } to { opacity: 1; transform: none; } }
 @keyframes float { 0%, 100% { transform: translate3d(0, 0, 0); } 50% { transform: translate3d(0, -18px, 0); } }
 @keyframes blink { 50% { opacity: 0; } }
@@ -194,8 +239,9 @@
 
 @media (prefers-reduced-motion: reduce) {
   .reveal { opacity: 1; transform: none; }
-  .draw { stroke-dashoffset: 0; }
+  .draw, .doodle-draw > * { stroke-dashoffset: 0; animation: none !important; }
   .fade-after { opacity: 1; }
   .marquee, .float-slow, .float-slower, .caret, .tick-loop, .travel, .ping-ring, .shimmer { animation: none; }
   .tick-loop { stroke-dashoffset: 0; }
+  .marker::before { transform: scaleX(1); animation: none !important; }
 }

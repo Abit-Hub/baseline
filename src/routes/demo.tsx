@@ -9,7 +9,7 @@ import { PageHeader, RatingPips, Section } from '@/components/ui-bits'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Textarea } from '@/components/ui/textarea'
-import { attentionFor, endsAt, isoDate, occurrences, type Occurrence } from '@/domain/schedule'
+import { attentionFor, dayLabel, endsAt, isoDate, occurrences, timeRange, type Occurrence } from '@/domain/schedule'
 import { agoLabel, recentAverage, sortSessions } from '@/domain/stats'
 import type { CoachNote, PlayerSummary, ScheduleOverride } from '@/domain/types'
 import { buildDemo, demoNow } from '@/lib/demo-data'
@@ -76,6 +76,7 @@ function Demo() {
 
   const detail = openId ? data.players.find((p) => p.id === openId) : undefined
   const detailSessions = sortSessions(data.sessions.filter((s) => s.log_id === openId))
+  const detailNext = upcoming.find((o) => o.logId === openId && !o.cancelled)
   const detailNotes = notes.filter((n) => n.log_id === openId).sort((a, b) => b.created_at.localeCompare(a.created_at))
 
   return (
@@ -171,6 +172,28 @@ function Demo() {
             <DialogTitle className="font-display text-3xl font-normal">{detail?.name}</DialogTitle>
             <DialogDescription>Their log, read only. You can leave notes and suggest goals.</DialogDescription>
           </DialogHeader>
+          <div className="flex flex-wrap items-end justify-between gap-x-8 gap-y-4 rounded-xl border bg-card p-4">
+            <div>
+              <p className="text-xs tracking-wide text-muted-foreground uppercase">Next session</p>
+              {detailNext ? (
+                <>
+                  <p className="mt-1 font-display text-3xl leading-none">{dayLabel(detailNext.date)}</p>
+                  <p className="tabular mt-1.5 text-sm">
+                    {timeRange(detailNext.start, detailNext.end)}
+                    {detailNext.place && <span className="text-muted-foreground"> · {detailNext.place}</span>}
+                  </p>
+                </>
+              ) : <p className="mt-1 font-display text-2xl leading-none">Nothing scheduled</p>}
+            </div>
+            <div>
+              <p className="text-xs tracking-wide text-muted-foreground uppercase">Last session</p>
+              {detailSessions[0] ? (
+                <p className="mt-1.5 flex items-center gap-2.5 text-sm">
+                  {agoLabel(detailSessions[0].session_date)} <RatingPips value={detailSessions[0].rating} />
+                </p>
+              ) : <p className="mt-1.5 text-sm text-muted-foreground">Nothing logged yet</p>}
+            </div>
+          </div>
           <RatingChart newestFirst={detailSessions} />
           <div>
             <h3 className="mb-2 text-xl">Recent sessions</h3>

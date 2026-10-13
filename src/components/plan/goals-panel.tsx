@@ -1,8 +1,9 @@
 import { useForm } from '@tanstack/react-form'
 import { useQuery } from '@tanstack/react-query'
 import { format, parseISO } from 'date-fns'
+import { Target } from 'lucide-react'
 import { useLog } from '@/components/log-context'
-import { ConfirmButton, EmptyState, Section } from '@/components/ui-bits'
+import { ConfirmButton, EmptyState, ListSkeleton, Section } from '@/components/ui-bits'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
@@ -32,7 +33,8 @@ export function GoalsPanel() {
   return (
     <>
       <Section title="Goals" className="border-t-0 pt-0" hint={isCoach ? `Add a goal to suggest it to ${playerName}. Only ${playerName} can tick goals off.` : undefined}>
-        {goals.isSuccess && goals.data.length === 0 && <EmptyState title="No goals yet">Pick one small target for this month.</EmptyState>}
+        {goals.isPending && <ListSkeleton rows={3} />}
+        {goals.isSuccess && goals.data.length === 0 && <EmptyState title="No goals yet" icon={Target}>Pick one small target for this month.</EmptyState>}
         <ul className="divide-y">
           {goals.data?.map((g) => (
             <li key={g.id} className="flex items-start gap-3 py-3">

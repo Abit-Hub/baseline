@@ -1,6 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { useEffect, useState } from 'react'
 import { FinalCta, Features, Footer, ForCoaches, Hero, HowItWorks, Nav, SkillsMarquee } from '@/components/landing/sections'
+import { Faq, Facts, Showcase } from '@/components/landing/showcase'
 import { ScrollProgress } from '@/components/landing/motion'
 import { supabase } from '@/lib/supabase'
 
@@ -22,9 +23,12 @@ function Landing() {
       <main>
         <Hero signedIn={signedIn} />
         <SkillsMarquee />
+        <Facts />
         <HowItWorks />
+        <Showcase />
         <Features />
         <ForCoaches signedIn={signedIn} />
+        <Faq />
         <FinalCta signedIn={signedIn} />
       </main>
       <Footer signedIn={signedIn} />

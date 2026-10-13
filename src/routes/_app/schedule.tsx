@@ -1,10 +1,11 @@
 import { useQuery } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
+import { CalendarDays } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { useLog } from '@/components/log-context'
 import { DayGroups, OccurrenceRow, SlotForm } from '@/components/schedule'
-import { ConfirmButton, EmptyState, PageHeader, Section } from '@/components/ui-bits'
+import { ConfirmButton, EmptyState, ListSkeleton, PageHeader, Section } from '@/components/ui-bits'
 import { Button } from '@/components/ui/button'
 import { scheduleQuery, useScheduleActions } from '@/data/queries'
 import { WEEKDAYS_LONG, WEEK_ORDER, endsAt, occurrences, timeRange } from '@/domain/schedule'
@@ -28,8 +29,9 @@ function Schedule() {
       <PageHeader title="Schedule" eyebrow={isCoach ? `Training times with ${playerName}` : undefined} />
 
       <Section title="Coming up" hint="The next two weeks. Tap a time to cancel it or move it for one day only." className="border-t-0 pt-0">
+        {isPending && <ListSkeleton rows={3} />}
         {!isPending && coming.length === 0 && (
-          <EmptyState title="Nothing coming up">Add the usual weekly times below and they will show here.</EmptyState>
+          <EmptyState title="Nothing coming up" icon={CalendarDays}>Add the usual weekly times below and they will show here.</EmptyState>
         )}
         <DayGroups items={coming} render={(o) => <OccurrenceRow occ={o} title={isCoach ? playerName : 'Training'} showPrep={isCoach} />} />
       </Section>

@@ -2,12 +2,13 @@ import { useQuery } from '@tanstack/react-query'
 import { Link, createFileRoute } from '@tanstack/react-router'
 import { format, parseISO } from 'date-fns'
 import { useSetAtom } from 'jotai'
+import { NotebookPen } from 'lucide-react'
 import { NoteComposer, NoteList } from '@/components/coach-notes'
 import { GetStarted } from '@/components/get-started'
 import { SessionPrompt } from '@/components/session-prompt'
 import { useLog } from '@/components/log-context'
 import { RatingChart } from '@/components/rating-chart'
-import { EmptyState, PageHeader, Section } from '@/components/ui-bits'
+import { EmptyState, OverviewSkeleton, PageHeader, RatingPips, Section } from '@/components/ui-bits'
 import { Button } from '@/components/ui/button'
 import { rowsQuery, scheduleQuery } from '@/data/queries'
 import { dayLabel, endsAt, occurrences, timeRange } from '@/domain/schedule'
@@ -29,6 +30,8 @@ function Overview() {
   const next = occurrences(schedule.data?.slots ?? [], schedule.data?.overrides ?? [], nowDate, 14)
     .find((o) => !o.cancelled && endsAt(o) >= nowDate)
 
+  const loading = sessions.isPending || schedule.isPending
+  const unseenNotes = isPlayer ? (notes.data ?? []).filter((n) => !n.acknowledged_at).length : 0
   const list = sortSessions(sessions.data ?? [])
   const latest = list[0]
   const avg = recentAverage(list, 5)
@@ -43,19 +46,51 @@ function Overview() {
     <>
       <PageHeader eyebrow={`${isCoach ? `${playerName} · ` : ''}${format(new Date(), 'EEEE d MMMM')}`} title="Overview" />
 
-      {schedule.isSuccess && (next ? (
-        <p className="-mt-4 mb-8 text-sm">
-          <span className="text-muted-foreground">Next session </span>
-          <Link to="/schedule" className="font-medium underline-offset-4 hover:underline">
-            {dayLabel(next.date)}, {timeRange(next.start, next.end)}
-          </Link>
-        </p>
-      ) : schedule.data.slots.length === 0 && isCoach && (
-        <p className="-mt-4 mb-8 text-sm">
-          <Link to="/schedule" className="font-medium text-primary underline underline-offset-4">Add your training times</Link>
-          <span className="text-muted-foreground"> so you both can see what is next.</span>
-        </p>
-      ))}
+      {loading ? <OverviewSkeleton /> : (
+        <div className="mb-8 rounded-xl border bg-card p-5 sm:p-6">
+          <div className="flex flex-wrap items-end justify-between gap-x-8 gap-y-5">
+            <div>
+              <p className="text-xs tracking-wide text-muted-foreground uppercase">Next session</p>
+              {next ? (
+                <>
+                  <Link to="/schedule" className="mt-1 block font-display text-4xl leading-none underline-offset-4 hover:underline sm:text-5xl">
+                    {dayLabel(next.date)}
+                  </Link>
+                  <p className="tabular mt-2 text-sm">
+                    {timeRange(next.start, next.end)}
+                    {next.place && <span className="text-muted-foreground"> · {next.place}</span>}
+                  </p>
+                </>
+              ) : (
+                <>
+                  <p className="mt-1 font-display text-3xl leading-none">Nothing scheduled</p>
+                  <p className="mt-2 text-sm">
+                    <Link to="/schedule" className="font-medium text-primary underline underline-offset-4">Add training times</Link>
+                    <span className="text-muted-foreground"> so you both can see what is next.</span>
+                  </p>
+                </>
+              )}
+            </div>
+            <div className="sm:text-right">
+              <p className="text-xs tracking-wide text-muted-foreground uppercase">Last session</p>
+              {latest ? (
+                <p className="mt-2 flex items-center gap-2.5 sm:justify-end">
+                  <span className="text-sm">{agoLabel(latest.session_date)}</span>
+                  <RatingPips value={latest.rating} />
+                </p>
+              ) : (
+                <p className="mt-2 text-sm text-muted-foreground">Nothing logged yet</p>
+              )}
+            </div>
+          </div>
+          {unseenNotes > 0 && (
+            <button type="button" className="mt-5 block w-full border-t pt-3 text-left text-sm font-medium text-primary underline-offset-4 hover:underline"
+              onClick={() => document.getElementById('coach-notes')?.scrollIntoView({ behavior: 'smooth' })}>
+              {unseenNotes === 1 ? 'New note from your coach' : `${unseenNotes} new notes from your coach`}
+            </button>
+          )}
+        </div>
+      )}
 
       {isPlayer && sessions.isSuccess && schedule.isSuccess && (
         <SessionPrompt logId={log.id} slots={schedule.data.slots} overrides={schedule.data.overrides} sessions={sessions.data} now={nowDate} />
@@ -67,18 +102,12 @@ function Overview() {
           onLogSession={() => setEditor({ open: true, session: null })} />
       )}
 
-      {sessions.isSuccess && list.length === 0 ? (
-        <EmptyState title="Nothing logged yet">
-          {isPlayer ? (
-            <>
-              <p>Add a session right after you leave the court, while it is fresh.</p>
-              <Button className="mt-4" onClick={() => setEditor({ open: true, session: null })}>
-                Log your first session
-              </Button>
-            </>
-          ) : (
-            <p>{playerName} has not logged a session yet. You can still leave a note below.</p>
-          )}
+      {loading ? null : list.length === 0 ? (
+        <EmptyState title="Nothing logged yet" icon={NotebookPen}
+          action={isPlayer && <Button onClick={() => setEditor({ open: true, session: null })}>Log your first session</Button>}>
+          {isPlayer
+            ? 'Add a session right after you leave the court, while it is fresh.'
+            : `${playerName} has not logged a session yet. You can still leave a note below.`}
         </EmptyState>
       ) : (
         <>
@@ -120,7 +149,7 @@ function Overview() {
       )}
 
       {(isCoach || (notes.data?.length ?? 0) > 0) && (
-        <Section title={isCoach ? 'Your notes for the player' : 'From your coach'}
+        <Section id="coach-notes" title={isCoach ? 'Your notes for the player' : 'From your coach'}
           hint={isCoach ? 'Visible to the player. Notes on a specific session are added from Sessions.' : undefined}>
           <div className="flex flex-col gap-5">
             {(notes.data?.length ?? 0) > 0 && <NoteList notes={(notes.data ?? []).slice(0, 3)} showSession={sessionDates} />}

@@ -1,12 +1,13 @@
 import { Link } from '@tanstack/react-router'
 import { ArrowRight, Lock } from 'lucide-react'
-import { useEffect, useState, type CSSProperties, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import { ThemeToggle } from '@/components/theme-toggle'
 import { buttonVariants } from '@/components/ui/button'
 import { SKILLS } from '@/domain/constants'
 import { cn } from '@/lib/utils'
+import { BallDot, CourtSketch, Doodle, HeroBall, useBallTrail } from './doodles'
 import { HeroNotebook } from './hero-notebook'
-import { Reveal, useInView } from './motion'
+import { Reveal, prefersReducedMotion, useInView } from './motion'
 
 const delay = (ms: number) => ({ '--d': `${ms}ms` }) as CSSProperties
 
@@ -37,7 +38,7 @@ export function Nav({ signedIn }: { signedIn: boolean }) {
       <div className="mx-auto flex h-16 max-w-6xl items-center gap-6 px-4 sm:px-6">
         <Link to="/" className="font-display text-3xl leading-none">Baseline</Link>
         <nav aria-label="Sections" className="ml-6 hidden items-center gap-6 text-sm text-muted-foreground md:flex">
-          {[['how', 'How it works'], ['features', 'Features'], ['coaches', 'For coaches']].map(([id, label]) => (
+          {[['how', 'How it works'], ['see', 'See it'], ['features', 'Features'], ['coaches', 'For coaches'], ['faq', 'Questions']].map(([id, label]) => (
             <a key={id} href={`#${id}`} className="transition-colors hover:text-foreground">{label}</a>
           ))}
         </nav>
@@ -55,9 +56,15 @@ export function Nav({ signedIn }: { signedIn: boolean }) {
 const HEADLINE = ['Your', 'game,', 'written', 'down.', 'Your', 'coach,']
 
 export function Hero({ signedIn }: { signedIn: boolean }) {
+  const trail = useBallTrail()
   return (
-    <section className="ruled margin-line relative overflow-hidden">
+    <section ref={trail} className="ruled margin-line relative overflow-hidden">
+      <span data-ball aria-hidden className="pointer-events-none absolute top-0 left-0 z-10 size-5 opacity-0 transition-opacity duration-300">
+        <svg viewBox="-10 -10 20 20" className="size-full"><BallDot r={10} /></svg>
+      </span>
       <div aria-hidden className="pointer-events-none absolute inset-0 bg-gradient-to-b from-background/0 via-background/0 to-background" />
+      <div aria-hidden className="float-slow pointer-events-none absolute -top-20 right-[-6rem] size-[30rem] rounded-full bg-primary/10 blur-3xl" />
+      <div aria-hidden className="float-slower pointer-events-none absolute bottom-0 left-[20%] size-[22rem] rounded-full bg-[oklch(0.9_0.15_100/0.25)] blur-3xl dark:bg-[oklch(0.8_0.12_100/0.08)]" />
       <div className="relative mx-auto grid max-w-6xl items-center gap-14 px-4 pt-14 pb-24 sm:px-6 lg:grid-cols-[1.1fr_0.9fr] lg:pt-24 lg:pb-32">
         <div className="in-view pl-0 sm:pl-6 lg:pl-10">
           <p className="rise mb-5 inline-flex items-center gap-2 rounded-full border bg-card/80 px-3 py-1 text-sm text-muted-foreground backdrop-blur" style={delay(0)}>
@@ -71,8 +78,8 @@ export function Hero({ signedIn }: { signedIn: boolean }) {
             {HEADLINE.map((w, i) => (
               <span key={i} className="rise mr-[0.22em] inline-block" style={delay(120 + i * 80)}>{w}</span>
             ))}
-            <span className="rise relative inline-block whitespace-nowrap text-primary italic" style={delay(120 + HEADLINE.length * 80)}>
-              in the loop.
+            <span className="rise marker relative inline-block whitespace-nowrap text-primary italic" style={delay(120 + HEADLINE.length * 80)}>
+              in the loop<HeroBall />
               <svg aria-hidden viewBox="0 0 300 14" preserveAspectRatio="none" className="absolute -bottom-1 left-0 h-3 w-full overflow-visible">
                 <path className="draw text-primary" style={delay(1100)} pathLength="1" d="M2 9 C 60 2, 120 13, 180 6 S 270 4, 298 8"
                   fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
@@ -125,23 +132,43 @@ const STEPS = [
 ]
 
 export function HowItWorks() {
-  const [ref, seen] = useInView<HTMLDivElement>(0.3)
+  const [step, setStep] = useState<0 | 1 | 2 | 3>(0)
+  const refs = useRef<(HTMLElement | null)[]>([])
+
+  // On wide screens the court follows whichever step is in the middle of the screen.
+  useEffect(() => {
+    if (!matchMedia('(min-width: 1024px)').matches) return
+    const io = new IntersectionObserver(
+      (entries) => entries.forEach((e) => { if (e.isIntersecting) setStep(Number((e.target as HTMLElement).dataset.step) as 1 | 2 | 3) }),
+      { rootMargin: '-42% 0px -42% 0px' },
+    )
+    refs.current.forEach((el) => el && io.observe(el))
+    return () => io.disconnect()
+  }, [])
+
   return (
-    <section id="how" className="mx-auto max-w-6xl scroll-mt-16 px-4 py-24 sm:px-6 lg:py-32">
+    <section id="how" className="relative mx-auto max-w-6xl scroll-mt-16 px-4 py-24 sm:px-6 lg:py-32">
       <Reveal><p className="text-sm font-medium tracking-wide text-primary uppercase">How it works</p></Reveal>
       <Reveal delay={80}><h2 className="mt-3 max-w-2xl text-5xl leading-none sm:text-6xl">Three steps, and the notebook runs itself.</h2></Reveal>
-      <div ref={ref} className="relative mt-16 grid gap-12 md:grid-cols-3 md:gap-8">
-        <div aria-hidden className="absolute top-7 right-[16%] left-[16%] hidden h-px md:block">
-          <div className={cn('h-full origin-left bg-primary/40 transition-transform duration-[1800ms] ease-out', seen ? 'scale-x-100' : 'scale-x-0')} />
+      <div className="mt-14 grid gap-14 lg:grid-cols-[1fr_20rem] lg:gap-20">
+        <ol className="flex flex-col gap-12 lg:gap-0">
+          {STEPS.map((s, i) => (
+            <li key={s.n} ref={(el) => { refs.current[i] = el }} data-step={s.n}
+              className={cn('relative border-l-2 pl-7 transition-all duration-500 lg:min-h-[17rem] lg:py-6',
+                step === 0 || step === i + 1 ? 'border-primary opacity-100' : 'border-border opacity-45')}>
+              <span className="absolute top-0 -left-[1.1rem] grid size-9 place-items-center rounded-full border bg-background font-display text-xl text-primary shadow-sm lg:top-6">{s.n}</span>
+              <Reveal delay={i * 100}>
+                <h3 className="text-3xl sm:text-4xl">{s.title}</h3>
+                <p className="mt-2 max-w-md text-lg text-muted-foreground">{s.body}</p>
+              </Reveal>
+            </li>
+          ))}
+        </ol>
+        <div className="lg:relative">
+          <div className="lg:sticky lg:top-24"><CourtSketch step={step} /></div>
         </div>
-        {STEPS.map((s, i) => (
-          <Reveal key={s.n} delay={i * 160} className="relative">
-            <span className="relative z-10 grid size-14 place-items-center rounded-full border bg-background font-display text-3xl text-primary shadow-sm">{s.n}</span>
-            <h3 className="mt-6 text-3xl">{s.title}</h3>
-            <p className="mt-2 max-w-sm text-muted-foreground">{s.body}</p>
-          </Reveal>
-        ))}
       </div>
+      <Doodle name="racket" className="top-24 right-[4%] h-28 w-20" rotate={18} />
     </section>
   )
 }
@@ -159,19 +186,39 @@ function Card({ className, children, delay: d = 0 }: { className?: string; child
 const FEEL = [2, 3, 3, 4, 3, 4, 5]
 const pt = (i: number) => [20 + i * 60, 140 - (FEEL[i] - 1) * 28] as const
 
+// A shallow arc from each point to the next, so the ball seems to bounce between sessions.
+const arc = (i: number) => {
+  const [x1, y1] = pt(i), [x2, y2] = pt(i + 1)
+  return `Q${(x1 + x2) / 2} ${Math.min(y1, y2) - 34} ${x2} ${y2}`
+}
+const BOUNCE = `M${pt(0).join(' ')} ${FEEL.slice(1).map((_, i) => arc(i)).join(' ')}`
+// The same path with its start moved to the origin, for the ball that rides it.
+const RIDE = `M0 0 ${FEEL.slice(1).map((_, i) => arc(i).replace(/(-?\d+(?:\.\d+)?) (-?\d+(?:\.\d+)?)/g, (_, x, y) => `${Number(x) - pt(0)[0]} ${Number(y) - pt(0)[1]}`)).join(' ')}`
+
 function FeelChart() {
   const [ref, seen] = useInView<HTMLDivElement>(0.4)
   const line = FEEL.map((_, i) => pt(i).join(',')).join(' ')
+  const still = prefersReducedMotion()
   return (
     <div ref={ref} className={cn(seen && 'in-view')}>
-      <svg viewBox="0 0 380 170" className="w-full overflow-visible" role="img" aria-label="Example chart of session ratings rising over seven sessions">
+      <svg viewBox="0 0 380 170" className="w-full overflow-visible" role="img" aria-label="Example chart of session ratings rising over seven sessions, drawn as a ball bouncing from one session to the next">
         {[1, 3, 5].map((r) => <line key={r} x1="0" x2="380" y1={140 - (r - 1) * 28} y2={140 - (r - 1) * 28} className="stroke-border" strokeDasharray="3 5" />)}
         <polygon className="fade-after fill-primary/10" style={delay(1300)} points={`20,140 ${line} 380,140`} />
-        <polyline className="draw stroke-primary" pathLength="1" points={line} fill="none" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+        <polyline className="draw stroke-primary/30" pathLength="1" points={line} fill="none" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+        <path className="draw stroke-primary" pathLength="1" d={BOUNCE} fill="none" strokeWidth="2.4" strokeLinecap="round" strokeDasharray="1" />
         {FEEL.map((_, i) => (
-          <circle key={i} cx={pt(i)[0]} cy={pt(i)[1]} r="5" className={cn('fill-card stroke-primary opacity-0', seen && 'pop')} strokeWidth="2.5"
+          <ellipse key={i} cx={pt(i)[0]} cy={pt(i)[1] + 6} rx="7" ry="2" className={cn('fill-foreground/15 opacity-0', seen && 'pop')} style={{ ...delay(250 + i * 200), transformBox: 'fill-box', transformOrigin: 'center' }} />
+        ))}
+        {FEEL.map((_, i) => (
+          <circle key={i} cx={pt(i)[0]} cy={pt(i)[1]} r="4.5" className={cn('fill-card stroke-primary opacity-0', seen && 'pop')} strokeWidth="2.5"
             style={{ ...delay(250 + i * 200), transformOrigin: 'center', transformBox: 'fill-box' }} />
         ))}
+        {seen && (
+          <g transform={`translate(${(still ? pt(FEEL.length - 1) : pt(0)).join(' ')})`}>
+            <BallDot r={9} />
+            {!still && <animateMotion dur="7s" begin="1.8s" repeatCount="indefinite" keyPoints="0;1;1" keyTimes="0;0.8;1" calcMode="linear" path={RIDE} />}
+          </g>
+        )}
       </svg>
     </div>
   )
@@ -232,7 +279,9 @@ function Goals() {
 export function Features() {
   return (
     <section id="features" className="scroll-mt-16 border-t bg-muted/40">
-      <div className="mx-auto max-w-6xl px-4 py-24 sm:px-6 lg:py-32">
+      <div className="relative mx-auto max-w-6xl px-4 py-24 sm:px-6 lg:py-32">
+        <Doodle name="ball" className="top-20 right-[6%] size-16" rotate={-12} />
+        <Doodle name="arrow" className="top-36 right-[16%] h-14 w-20" rotate={8} />
         <Reveal><p className="text-sm font-medium tracking-wide text-primary uppercase">Features</p></Reveal>
         <Reveal delay={80}><h2 className="mt-3 max-w-2xl text-5xl leading-none sm:text-6xl">Everything the two of you need, nothing you don’t.</h2></Reveal>
 
@@ -360,6 +409,8 @@ export function FinalCta({ signedIn }: { signedIn: boolean }) {
   return (
     <section className="ruled margin-line relative overflow-hidden border-t">
       <div aria-hidden className="pointer-events-none absolute inset-0 bg-gradient-to-b from-background via-background/0 to-background" />
+      <Doodle name="bottle" className="bottom-16 left-[14%] h-24 w-20" rotate={-10} />
+      <Doodle name="racket" className="top-14 right-[12%] h-32 w-24" rotate={22} />
       <div className="relative mx-auto max-w-4xl px-4 py-28 text-center sm:px-6 lg:py-36">
         <Reveal><h2 className="text-[clamp(3rem,8vw,5.5rem)] leading-none">Start your log tonight.</h2></Reveal>
         <Reveal delay={100}><p className="mx-auto mt-5 max-w-lg text-lg text-muted-foreground">Make an account, log your first session, and send your coach the invite link.</p></Reveal>

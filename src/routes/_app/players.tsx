@@ -1,10 +1,10 @@
 import { useQuery } from '@tanstack/react-query'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { addDays } from 'date-fns'
-import { AlertCircle } from 'lucide-react'
+import { AlertCircle, Users } from 'lucide-react'
 import { useLog } from '@/components/log-context'
 import { DayGroups, OccurrenceRow } from '@/components/schedule'
-import { EmptyState, PageHeader, Section } from '@/components/ui-bits'
+import { EmptyState, ListSkeleton, PageHeader, Section } from '@/components/ui-bits'
 import { myPlayersQuery, scheduleQuery } from '@/data/queries'
 import { attentionFor, endsAt, isoDate, occurrences } from '@/domain/schedule'
 import { agoLabel } from '@/domain/stats'
@@ -52,10 +52,11 @@ function Players() {
         title="Players" />
       {error && <p className="text-sm text-destructive">Could not load your players: {error.message}</p>}
       {!isPending && !error && players.length === 0 && (
-        <EmptyState title="No players yet">
+        <EmptyState title="No players yet" icon={Users}>
           Ask a player to send you their coach link from Settings. Open it while signed in and tap “Join this log as coach”.
         </EmptyState>
       )}
+      {isPending && <ListSkeleton rows={4} />}
 
       {players.length > 0 && (
         <>

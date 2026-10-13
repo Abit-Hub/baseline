@@ -5,10 +5,10 @@ import {
 } from '@tanstack/react-table'
 import { format, parseISO } from 'date-fns'
 import { useAtom, useSetAtom } from 'jotai'
-import { ArrowDown, ArrowUp, ArrowUpDown } from 'lucide-react'
+import { ArrowDown, ArrowUp, ArrowUpDown, NotebookPen } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { useLog } from '@/components/log-context'
-import { EmptyState, PageHeader, RatingPips } from '@/components/ui-bits'
+import { EmptyState, ListSkeleton, PageHeader, RatingPips } from '@/components/ui-bits'
 import { Button } from '@/components/ui/button'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { rowsQuery } from '@/data/queries'
@@ -82,8 +82,11 @@ function Sessions() {
         {isPlayer && <Button onClick={() => setEditor({ open: true, session: null })}>Log session</Button>}
       </PageHeader>
 
-      {!isPending && data.length === 0 ? (
-        <EmptyState title="No sessions yet">{isPlayer ? 'Log one after your next training. It takes a minute.' : 'The player has not logged a session yet.'}</EmptyState>
+      {isPending ? <ListSkeleton rows={5} /> : data.length === 0 ? (
+        <EmptyState title="No sessions yet" icon={NotebookPen}
+          action={isPlayer && <Button onClick={() => setEditor({ open: true, session: null })}>Log your first session</Button>}>
+          {isPlayer ? 'Log one after your next training. It takes a minute.' : 'The player has not logged a session yet.'}
+        </EmptyState>
       ) : (
         <>
           <div className="mb-4 flex flex-wrap gap-1.5" role="group" aria-label="Filter by focus">

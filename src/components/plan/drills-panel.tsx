@@ -1,10 +1,11 @@
 import { useForm } from '@tanstack/react-form'
 import { useQuery } from '@tanstack/react-query'
 import { format } from 'date-fns'
+import { Dumbbell } from 'lucide-react'
 import { toast } from 'sonner'
 import { z } from 'zod'
 import { useLog } from '@/components/log-context'
-import { ConfirmButton, EmptyState, Section } from '@/components/ui-bits'
+import { ConfirmButton, EmptyState, ListSkeleton, Section } from '@/components/ui-bits'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -54,8 +55,9 @@ export function DrillsPanel() {
           : `Drills ${playerName} is working on. Add one to suggest it to them.`}
       </p>
 
+      {isPending && <ListSkeleton rows={3} />}
       {!isPending && data.length === 0 && (
-        <EmptyState title="No drills yet">{isPlayer ? 'Add one below, or ask your coach for a drill to repeat at home.' : 'Add the first drill below.'}</EmptyState>
+        <EmptyState title="No drills yet" icon={Dumbbell}>{isPlayer ? 'Add one below, or ask your coach for a drill to repeat at home.' : 'Add the first drill below.'}</EmptyState>
       )}
 
       {groups.map(({ skill, items }) => (
