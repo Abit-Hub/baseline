@@ -17,6 +17,7 @@ import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as AppOverviewRouteImport } from './routes/_app/overview'
 import { Route as AppPlanRouteImport } from './routes/_app/plan'
 import { Route as AppPlayersRouteImport } from './routes/_app/players'
+import { Route as AppReportRouteImport } from './routes/_app/report'
 import { Route as AppScheduleRouteImport } from './routes/_app/schedule'
 import { Route as AppSessionsRouteImport } from './routes/_app/sessions'
 import { Route as AppSettingsRouteImport } from './routes/_app/settings'
@@ -61,6 +62,11 @@ const AppPlayersRoute = AppPlayersRouteImport.update({
   path: '/players',
   getParentRoute: () => AppRoute,
 } as any)
+const AppReportRoute = AppReportRouteImport.update({
+  id: '/report',
+  path: '/report',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppScheduleRoute = AppScheduleRouteImport.update({
   id: '/schedule',
   path: '/schedule',
@@ -90,6 +96,7 @@ export interface FileRoutesByFullPath {
   '/overview': typeof AppOverviewRoute
   '/plan': typeof AppPlanRoute
   '/players': typeof AppPlayersRoute
+  '/report': typeof AppReportRoute
   '/schedule': typeof AppScheduleRoute
   '/sessions': typeof AppSessionsRoute
   '/settings': typeof AppSettingsRoute
@@ -103,6 +110,7 @@ export interface FileRoutesByTo {
   '/overview': typeof AppOverviewRoute
   '/plan': typeof AppPlanRoute
   '/players': typeof AppPlayersRoute
+  '/report': typeof AppReportRoute
   '/schedule': typeof AppScheduleRoute
   '/sessions': typeof AppSessionsRoute
   '/settings': typeof AppSettingsRoute
@@ -118,6 +126,7 @@ export interface FileRoutesById {
   '/_app/overview': typeof AppOverviewRoute
   '/_app/plan': typeof AppPlanRoute
   '/_app/players': typeof AppPlayersRoute
+  '/_app/report': typeof AppReportRoute
   '/_app/schedule': typeof AppScheduleRoute
   '/_app/sessions': typeof AppSessionsRoute
   '/_app/settings': typeof AppSettingsRoute
@@ -133,6 +142,7 @@ export interface FileRouteTypes {
     | '/overview'
     | '/plan'
     | '/players'
+    | '/report'
     | '/schedule'
     | '/sessions'
     | '/settings'
@@ -146,6 +156,7 @@ export interface FileRouteTypes {
     | '/overview'
     | '/plan'
     | '/players'
+    | '/report'
     | '/schedule'
     | '/sessions'
     | '/settings'
@@ -160,6 +171,7 @@ export interface FileRouteTypes {
     | '/_app/overview'
     | '/_app/plan'
     | '/_app/players'
+    | '/_app/report'
     | '/_app/schedule'
     | '/_app/sessions'
     | '/_app/settings'
@@ -233,6 +245,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppPlayersRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/report': {
+      id: '/_app/report'
+      path: '/report'
+      fullPath: '/report'
+      preLoaderRoute: typeof AppReportRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/schedule': {
       id: '/_app/schedule'
       path: '/schedule'
@@ -268,6 +287,7 @@ interface AppRouteChildren {
   AppOverviewRoute: typeof AppOverviewRoute
   AppPlanRoute: typeof AppPlanRoute
   AppPlayersRoute: typeof AppPlayersRoute
+  AppReportRoute: typeof AppReportRoute
   AppScheduleRoute: typeof AppScheduleRoute
   AppSessionsRoute: typeof AppSessionsRoute
   AppSettingsRoute: typeof AppSettingsRoute
@@ -277,6 +297,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppOverviewRoute: AppOverviewRoute,
   AppPlanRoute: AppPlanRoute,
   AppPlayersRoute: AppPlayersRoute,
+  AppReportRoute: AppReportRoute,
   AppScheduleRoute: AppScheduleRoute,
   AppSessionsRoute: AppSessionsRoute,
   AppSettingsRoute: AppSettingsRoute,

@@ -1,6 +1,7 @@
 import { addDays, startOfDay } from 'date-fns'
-import { isoDate } from '@/domain/schedule'
-import type { CoachNote, Goal, ScheduleSlot, Session } from '@/domain/types'
+import type { Arrangement, Payment } from '@/domain/payments'
+import { endsAt, isoDate, occurrences } from '@/domain/schedule'
+import type { CoachNote, Goal, Match, ScheduleSlot, Session } from '@/domain/types'
 
 /**
  * Sample players for the /demo page. Everything is relative to today, so the
@@ -17,11 +18,23 @@ export interface DemoPlayer {
   goals: [string, boolean][]
   /** [days ago, note] */
   notes: [number, string][]
+  /** [days ago, won, opponent, score, what worked, what to fix] */
+  matches?: [number, boolean, string, string, string, string][]
+  /** What was agreed, how many sessions have run since, and what has been paid. */
+  deal: {
+    kind: 'package' | 'per_session'
+    sessions?: number
+    price: number
+    used: number
+    /** [days ago, amount, player says they paid but the coach has not confirmed] */
+    payments: [number, number, boolean?][]
+  }
 }
 
 const PLAYERS: DemoPlayer[] = [
   {
     id: 'chidi', name: 'Chidi',
+    deal: { kind: 'package', sessions: 12, price: 30000, used: 9, payments: [[30, 30000]] },
     slots: [
       { offset: 0, start: '16:30', end: '18:00', place: 'Court 1' },
       { offset: 3, start: '16:30', end: '18:00', place: 'Court 1' },
@@ -37,9 +50,11 @@ const PLAYERS: DemoPlayer[] = [
     ],
     goals: [['Rally 15 forehands in a row', false], ['Serve toss in the same spot, 10 times', true], ['Split step before every return', false]],
     notes: [[2, 'Great session. Your backhand has come a long way. Next week we start on the volley.'], [9, 'Watch the grip on the serve. We will fix it together on Saturday.']],
+    matches: [[5, true, 'Tunde', '6-4, 3-6, 7-5', 'Kept the ball deep in the third set.', 'Too many early errors on the backhand.'], [16, false, 'Club junior', '4-6, 2-6', 'Serve held up.', 'Move forward on short balls.']],
   },
   {
     id: 'amaka', name: 'Amaka',
+    deal: { kind: 'package', sessions: 8, price: 20000, used: 8, payments: [[40, 10000]] },
     slots: [
       { offset: 0, start: '18:15', end: '19:30', place: 'Court 2' },
       { offset: 2, start: '17:00', end: '18:15', place: 'Court 2' },
@@ -52,9 +67,11 @@ const PLAYERS: DemoPlayer[] = [
     ],
     goals: [['Win a set against Tunde', false], ['Hit 7 of 10 first serves in', false]],
     notes: [[4, 'Strong week. Keep the same routine before every serve.']],
+    matches: [[7, true, 'Ife', '6-3, 6-4', 'First serve percentage was high.', 'Stay patient on long rallies.']],
   },
   {
     id: 'tunde', name: 'Tunde',
+    deal: { kind: 'per_session', price: 3500, used: 6, payments: [[28, 15000], [1, 6000, true]] },
     slots: [
       { offset: -2, start: '16:00', end: '17:30' },
       { offset: 1, start: '16:00', end: '17:30' },
@@ -69,6 +86,7 @@ const PLAYERS: DemoPlayer[] = [
   },
   {
     id: 'ife', name: 'Ife',
+    deal: { kind: 'package', sessions: 12, price: 30000, used: 11, payments: [[45, 30000]] },
     slots: [
       { offset: -1, start: '17:00', end: '18:30', place: 'Court 3' },
       { offset: 3, start: '18:15', end: '19:30', place: 'Court 3' },
@@ -82,6 +100,7 @@ const PLAYERS: DemoPlayer[] = [
     ],
     goals: [['Hold serve three games in a row', false], ['Add spin to the second serve', false]],
     notes: [[5, 'Nice footwork this week. Keep it going.']],
+    matches: [[7, false, 'Amaka', '3-6, 4-6', 'Returned well in the second set.', 'Second serve gave away points.'], [12, true, 'Club friendly', '6-2, 6-3', 'Aggressive from the baseline.', 'Finish points at the net.']],
   },
 ]
 
@@ -100,6 +119,10 @@ export function buildDemo() {
   const sessions: Session[] = []
   const goals: Goal[] = []
   const notes: CoachNote[] = []
+  const matches: Match[] = []
+  const arrangements: (Arrangement & { log_id: string })[] = []
+  const payments: (Payment & { log_id: string })[] = []
+  const now = demoNow()
 
   for (const p of PLAYERS) {
     p.slots.forEach((s, i) => slots.push({
@@ -115,11 +138,22 @@ export function buildDemo() {
     p.goals.forEach(([text, done], i) => goals.push({
       id: `${p.id}-g-${i}`, log_id: p.id, text, done, target_date: null, position: i + 1, created_by: null,
     }))
+    p.matches?.forEach(([ago, won, opponent, score, worked, fix], i) => matches.push({
+      id: `${p.id}-m-${i}`, log_id: p.id, match_date: isoDate(addDays(today, -ago)),
+      result: won ? 'win' : 'loss', opponent, score, worked, fix, created_at: when(ago),
+    }))
+    // Start the deal on the day that makes exactly `used` sessions have run since.
+    const past = occurrences(slots.filter((x) => x.log_id === p.id), [], addDays(now, -120), 121).filter((o) => endsAt(o) < now)
+    const first = past[Math.max(0, past.length - p.deal.used)]
+    arrangements.push({ log_id: p.id, kind: p.deal.kind, sessions: p.deal.sessions ?? null, price: p.deal.price, start_date: first?.date ?? isoDate(addDays(today, -30)) })
+    p.deal.payments.forEach(([ago, amount, pending], i) => payments.push({
+      id: `${p.id}-pay-${i}`, log_id: p.id, amount, paid_on: isoDate(addDays(today, -ago)), pending: Boolean(pending),
+    }))
     p.notes.forEach(([ago, note], i) => notes.push({
       id: `${p.id}-n-${i}`, log_id: p.id, session_id: null, note, author_id: 'coach', created_at: when(ago, '18:00:00'),
       // One note is still unseen, so the demo shows the coach what that looks like.
       acknowledged_at: p.id === 'amaka' ? null : when(ago, '21:00:00'),
     }))
   }
-  return { players: PLAYERS.map(({ id, name }) => ({ id, name })), slots, sessions, goals, notes }
+  return { players: PLAYERS.map(({ id, name }) => ({ id, name })), slots, sessions, goals, notes, matches, arrangements, payments }
 }

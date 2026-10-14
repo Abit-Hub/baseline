@@ -1,15 +1,19 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
-import { addDays, format, parseISO } from 'date-fns'
+import { addDays, differenceInCalendarDays, format, parseISO } from 'date-fns'
 import { AlertCircle, MessageSquarePlus } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { toast } from 'sonner'
+import { MoneySummary, PaymentLine, PaymentsBlock } from '@/components/payments'
 import { DayGroups, OccurrenceView, PrepView } from '@/components/schedule'
 import { RatingChart } from '@/components/rating-chart'
+import { ReportView } from '@/components/report-view'
 import { PageHeader, RatingPips, Section } from '@/components/ui-bits'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Textarea } from '@/components/ui/textarea'
 import { attentionFor, dayLabel, endsAt, isoDate, occurrences, timeRange, type Occurrence } from '@/domain/schedule'
+import { heldSessions, naira, standing } from '@/domain/payments'
+import { buildReport } from '@/domain/report'
 import { agoLabel, recentAverage, sortSessions } from '@/domain/stats'
 import type { CoachNote, PlayerSummary, ScheduleOverride } from '@/domain/types'
 import { buildDemo, demoNow } from '@/lib/demo-data'
@@ -24,6 +28,8 @@ function Demo() {
   const [extraNotes, setExtraNotes] = useState<CoachNote[]>([])
   const [openId, setOpenId] = useState<string | null>(null)
   const [noteFor, setNoteFor] = useState<string | null>(null)
+  const [reportFor, setReportFor] = useState<string | null>(null)
+  const [payments, setPayments] = useState(data.payments)
 
   useEffect(() => { document.title = 'Coach demo · Baseline' }, [])
 
@@ -41,6 +47,20 @@ function Demo() {
       unseen_notes: notes.filter((n) => n.log_id === p.id && !n.acknowledged_at).length,
     }
   })
+
+  // Sessions used come from the schedule, so cancelling one below changes the count.
+  const money = new Map(data.players.map((p) => {
+    const a = data.arrangements.find((x) => x.log_id === p.id)!
+    const mine = payments.filter((x) => x.log_id === p.id)
+    const own = data.slots.filter((x) => x.log_id === p.id)
+    return [p.id, { a, mine, s: standing([a], mine, (x) => heldSessions(own, overrides, x.start_date, now, x.ended_on)) }] as const
+  }))
+  const recentFor = (id: string) => {
+    const a = money.get(id)!.a
+    const days = Math.max(1, differenceInCalendarDays(now, parseISO(a.start_date)) + 1)
+    return occurrences(data.slots.filter((x) => x.log_id === id), overrides, parseISO(a.start_date), days)
+      .filter((o) => endsAt(o) < now).sort((x, y) => y.date.localeCompare(x.date) || y.start.localeCompare(x.start)).slice(0, 4)
+  }
 
   const all = occurrences(data.slots, overrides, addDays(now, -7), 15)
   const today = isoDate(now)
@@ -76,6 +96,14 @@ function Demo() {
 
   const detail = openId ? data.players.find((p) => p.id === openId) : undefined
   const detailSessions = sortSessions(data.sessions.filter((s) => s.log_id === openId))
+  const reportPlayer = data.players.find((p) => p.id === reportFor)
+  const report = useMemo(() => reportFor ? buildReport({
+    sessions: data.sessions.filter((s) => s.log_id === reportFor),
+    goals: data.goals.filter((g) => g.log_id === reportFor),
+    drills: [],
+    notes: data.notes.filter((n) => n.log_id === reportFor),
+    matches: data.matches.filter((m) => m.log_id === reportFor),
+  }, 'quarter') : null, [reportFor, data])
   const detailNext = upcoming.find((o) => o.logId === openId && !o.cancelled)
   const detailNotes = notes.filter((n) => n.log_id === openId).sort((a, b) => b.created_at.localeCompare(a.created_at))
 
@@ -110,8 +138,11 @@ function Demo() {
             <li>Tap Chidi’s session today to see what he wrote last time.</li>
             <li>Tap <em>Add note</em> and write one for Ife. Her red flag clears.</li>
             <li>Move or cancel a session, then open a player to read their log.</li>
+            <li>Open Tunde, confirm the ₦6,000 he says he paid, and watch what he owes drop. Open Amaka to record a payment.</li>
           </ol>
         </div>
+
+        <MoneySummary standings={[...money.values()].map((m) => m.s)} />
 
         <Section title="Today" className="border-t-0 pt-0">
           {todays.length ? <DayGroups items={todays} render={row} skipToday /> : <p className="text-sm text-muted-foreground">Nothing else on today.</p>}
@@ -139,6 +170,7 @@ function Demo() {
                         {p.unseen_notes === 1 ? 'Your last note has not been seen yet' : `${p.unseen_notes} notes not seen yet`}
                       </span>
                     )}
+                    {money.get(p.log_id) && <PaymentLine s={money.get(p.log_id)!.s} />}
                     {reasons.map((r) => (
                       <span key={r} className="mt-0.5 flex items-center gap-1 text-sm text-destructive">
                         <AlertCircle className="size-3.5 shrink-0" aria-hidden /> {r}
@@ -210,6 +242,22 @@ function Demo() {
               ))}
             </ul>
           </div>
+          {detail && money.get(detail.id) && (
+            <div>
+              <h3 className="mb-2 text-xl">Payments</h3>
+              <PaymentsBlock name={detail.name} s={money.get(detail.id)!.s} payments={money.get(detail.id)!.mine} canManage
+                recent={recentFor(detail.id)}
+                onToggleSession={(o) => o.cancelled
+                  ? setOverrides((cur) => cur.filter((x) => x.id !== o.overrideId))
+                  : setOverride(o, { new_date: null, new_start: null, new_end: null })}
+                onConfirm={(id) => { setPayments((cur) => cur.map((x) => x.id === id ? { ...x, pending: false } : x)); toast.success('Payment confirmed') }}
+                onRemove={(id) => setPayments((cur) => cur.filter((x) => x.id !== id))}
+                onRecord={(amount) => {
+                  setPayments((cur) => [...cur, { id: `new-${cur.length}`, log_id: detail.id, amount, paid_on: isoDate(now), pending: false }])
+                  toast.success(`${naira(amount)} recorded for ${detail.name}`)
+                }} />
+            </div>
+          )}
           <div>
             <h3 className="mb-2 text-xl">Your notes</h3>
             <ul className="flex flex-col gap-3">
@@ -221,8 +269,21 @@ function Demo() {
                 </li>
               ))}
             </ul>
-            <Button className="mt-4" size="sm" variant="outline" onClick={() => { setNoteFor(openId); }}>Add a note</Button>
+            <div className="mt-4 flex flex-wrap gap-2">
+              <Button size="sm" variant="outline" onClick={() => { setNoteFor(openId); }}>Add a note</Button>
+              <Button size="sm" variant="outline" onClick={() => setReportFor(openId)}>See progress report</Button>
+            </div>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={Boolean(reportPlayer)} onOpenChange={(o) => !o && setReportFor(null)}>
+        <DialogContent className="max-h-[92svh] overflow-y-auto sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="sr-only">Progress report for {reportPlayer?.name}</DialogTitle>
+            <DialogDescription>A one-page summary you can print or send to a player or a parent.</DialogDescription>
+          </DialogHeader>
+          {reportPlayer && report && <ReportView playerName={reportPlayer.name} report={report} />}
         </DialogContent>
       </Dialog>
 

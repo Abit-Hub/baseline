@@ -5,6 +5,7 @@ import { useSetAtom } from 'jotai'
 import { NotebookPen } from 'lucide-react'
 import { NoteComposer, NoteList } from '@/components/coach-notes'
 import { GetStarted } from '@/components/get-started'
+import { PaymentsSection } from '@/components/payments-section'
 import { SessionPrompt } from '@/components/session-prompt'
 import { useLog } from '@/components/log-context'
 import { RatingChart } from '@/components/rating-chart'
@@ -155,6 +156,15 @@ function Overview() {
             {(notes.data?.length ?? 0) > 0 && <NoteList notes={(notes.data ?? []).slice(0, 3)} showSession={sessionDates} />}
             <NoteComposer label="Write a note for the player" />
           </div>
+        </Section>
+      )}
+
+      {!loading && <PaymentsSection logId={log.id} />}
+
+      {!loading && list.length > 0 && (
+        <Section title="Progress report">
+          <p className="text-sm text-muted-foreground">A one-page summary of {isPlayer ? 'your' : `${playerName}’s`} sessions, matches and goals. Print it or save it as a PDF.</p>
+          <Link to="/report" className="mt-3 inline-block text-sm font-medium text-primary underline underline-offset-4">Open the report</Link>
         </Section>
       )}
 

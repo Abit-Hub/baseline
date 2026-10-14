@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { createFileRoute } from '@tanstack/react-router'
+import { Link, createFileRoute } from '@tanstack/react-router'
 import {
   createColumnHelper, flexRender, getCoreRowModel, getSortedRowModel, useReactTable, type SortingState,
 } from '@tanstack/react-table'
@@ -7,6 +7,8 @@ import { format, parseISO } from 'date-fns'
 import { useAtom, useSetAtom } from 'jotai'
 import { ArrowDown, ArrowUp, ArrowUpDown, NotebookPen } from 'lucide-react'
 import { useMemo, useState } from 'react'
+import { z } from 'zod'
+import { MatchesPanel } from '@/components/matches'
 import { useLog } from '@/components/log-context'
 import { EmptyState, ListSkeleton, PageHeader, RatingPips } from '@/components/ui-bits'
 import { Button } from '@/components/ui/button'
@@ -17,11 +19,20 @@ import type { Session } from '@/domain/types'
 import { cn } from '@/lib/utils'
 import { focusFilterAtom, sessionEditorAtom } from '@/state/atoms'
 
-export const Route = createFileRoute('/_app/sessions')({ component: Sessions })
+export const Route = createFileRoute('/_app/sessions')({
+  validateSearch: z.object({ view: z.enum(['practice', 'matches']).optional() }),
+  component: Sessions,
+})
+
+const VIEWS = [
+  { id: 'practice', label: 'Practice' },
+  { id: 'matches', label: 'Matches' },
+] as const
 
 const col = createColumnHelper<Session>()
 
 function Sessions() {
+  const { view = 'practice' } = Route.useSearch()
   const { log, isPlayer } = useLog()
   const { data = [], isPending } = useQuery(rowsQuery('sessions', log.id))
   const notes = useQuery(rowsQuery('coach_notes', log.id))
@@ -79,8 +90,18 @@ function Sessions() {
   return (
     <>
       <PageHeader title="Sessions">
-        {isPlayer && <Button onClick={() => setEditor({ open: true, session: null })}>Log session</Button>}
+        {isPlayer && view === 'practice' && <Button onClick={() => setEditor({ open: true, session: null })}>Log session</Button>}
       </PageHeader>
+      <div role="tablist" aria-label="Sessions" className="mb-6 inline-flex rounded-lg border p-0.5">
+        {VIEWS.map((v) => (
+          <Link key={v.id} to="/sessions" search={{ view: v.id }} replace role="tab" aria-selected={view === v.id}
+            className={cn('rounded-md px-5 py-2 text-sm font-medium text-muted-foreground transition-colors md:px-4 md:py-1.5',
+              view === v.id ? 'bg-accent text-accent-foreground' : 'hover:text-foreground')}>
+            {v.label}
+          </Link>
+        ))}
+      </div>
+      {view === 'matches' ? <MatchesPanel /> : <>
 
       {isPending ? <ListSkeleton rows={5} /> : data.length === 0 ? (
         <EmptyState title="No sessions yet" icon={NotebookPen}
@@ -145,6 +166,7 @@ function Sessions() {
           </p>
         </>
       )}
+      </>}
     </>
   )
 }

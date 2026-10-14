@@ -245,3 +245,16 @@
   .tick-loop { stroke-dashoffset: 0; }
   .marker::before { transform: scaleX(1); animation: none !important; }
 }
+
+/* Printing always uses the light paper colours, even when the app is in dark mode. */
+@media print {
+  :root, .dark {
+    --background: oklch(1 0 0); --foreground: oklch(0.22 0.025 265);
+    --card: oklch(1 0 0); --card-foreground: oklch(0.22 0.025 265);
+    --muted: oklch(0.96 0.005 255); --muted-foreground: oklch(0.44 0.02 262);
+    --border: oklch(0.88 0.008 262); --primary: oklch(0.42 0.17 275); --primary-foreground: oklch(0.985 0.003 250);
+    --accent: oklch(0.945 0.03 275); --accent-foreground: oklch(0.3 0.1 275);
+  }
+  .print-exact, .print-exact * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  body { background: white; }
+}

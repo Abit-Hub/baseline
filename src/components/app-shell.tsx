@@ -29,7 +29,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   return (
     <div className="min-h-svh">
-      <header className="sticky top-0 z-20 border-b bg-background/90 pt-[env(safe-area-inset-top)] backdrop-blur">
+      <header className="sticky top-0 z-20 border-b print:hidden bg-background/90 pt-[env(safe-area-inset-top)] backdrop-blur">
         <div className="mx-auto flex h-14 max-w-3xl items-center gap-3 px-4">
           <Link to="/overview" className="flex items-baseline gap-2">
             <span className="font-display text-2xl leading-none">Baseline</span>
@@ -59,10 +59,10 @@ export function AppShell({ children }: { children: ReactNode }) {
         </div>
       </header>
 
-      <main className="mx-auto max-w-3xl px-4 py-8 pb-28 md:pb-16">{children}</main>
+      <main className="mx-auto max-w-3xl px-4 py-8 pb-28 md:pb-16 print:max-w-none print:p-0">{children}</main>
 
       <nav aria-label="Main"
-        className="fixed inset-x-0 bottom-0 z-20 grid border-t bg-background/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden"
+        className="fixed inset-x-0 bottom-0 z-20 grid border-t print:hidden bg-background/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden"
         style={{ gridTemplateColumns: `repeat(${nav.length}, minmax(0, 1fr))` }}>
         {nav.map(({ to, label, Icon, exact }) => (
           <Link key={to} to={to} activeOptions={{ exact }} activeProps={linkActive}

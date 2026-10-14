@@ -1,15 +1,16 @@
 import { queryOptions, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useEffect } from 'react'
 import { STARTER_DRILLS } from '@/domain/constants'
-import type { CoachNote, Drill, Goal, Log, Member, Membership, PlayerSummary, ScheduleOverride, ScheduleSlot, Session } from '@/domain/types'
+import type { ArrangementRow, CoachNote, Drill, Goal, Log, Match, Member, Membership, PaymentRow, PlayerSummary, ScheduleOverride, ScheduleSlot, Session } from '@/domain/types'
 import { supabase } from '@/lib/supabase'
 
-export type TableName = 'sessions' | 'drills' | 'goals' | 'coach_notes'
+export type TableName = 'sessions' | 'drills' | 'goals' | 'coach_notes' | 'matches'
 interface RowMap {
   sessions: Session
   drills: Drill
   goals: Goal
   coach_notes: CoachNote
+  matches: Match
 }
 
 const ORDER: Record<TableName, { column: string; ascending: boolean }> = {
@@ -17,6 +18,7 @@ const ORDER: Record<TableName, { column: string; ascending: boolean }> = {
   drills: { column: 'position', ascending: true },
   goals: { column: 'position', ascending: true },
   coach_notes: { column: 'created_at', ascending: false },
+  matches: { column: 'match_date', ascending: false },
 }
 
 function check<T>(res: { data: T; error: { message: string } | null }): T {
@@ -174,6 +176,64 @@ export function useScheduleActions(logId: string) {
   }
 }
 
+/* ------------------------------------------------------------------ money */
+
+/** One log's arrangements and payments, or every log I belong to when logId is null. */
+export const moneyQuery = (logId: string | null) =>
+  queryOptions({
+    queryKey: ['money', logId ?? 'all'],
+    queryFn: async () => {
+      const scope = logId ? { log_id: logId } : {}
+      const [arrangements, payments] = await Promise.all([
+        supabase.from('arrangements').select('*').match(scope).order('start_date'),
+        supabase.from('payments').select('*').match(scope).order('paid_on', { ascending: false }).order('created_at', { ascending: false }),
+      ])
+      return { arrangements: check(arrangements) as ArrangementRow[], payments: check(payments) as PaymentRow[] }
+    },
+  })
+
+export interface ArrangementInput {
+  kind: 'package' | 'per_session'
+  sessions: number | null
+  price: number
+  start_date: string
+}
+
+export function useMoneyActions(logId: string) {
+  const qc = useQueryClient()
+  const refresh = () => qc.invalidateQueries({ queryKey: ['money'] })
+  return {
+    /** Starts a new arrangement. The current one ends on the new start date. */
+    start: useMutation({
+      mutationFn: async (v: ArrangementInput) =>
+        check(await supabase.rpc('start_arrangement', { _log: logId, _kind: v.kind, _sessions: v.sessions, _price: v.price, _start: v.start_date })),
+      onSuccess: refresh,
+    }),
+    /** Corrects the current arrangement in place. */
+    edit: useMutation({
+      mutationFn: async (v: { id: string } & ArrangementInput) => {
+        const { id, ...patch } = v
+        return check(await supabase.from('arrangements').update(patch).eq('id', id))
+      },
+      onSuccess: refresh,
+    }),
+    /** The coach records money received. The player records "I've paid", which stays pending. */
+    addPayment: useMutation({
+      mutationFn: async (v: { amount: number; pending: boolean }) =>
+        check(await supabase.from('payments').insert({ ...v, log_id: logId })),
+      onSuccess: refresh,
+    }),
+    confirm: useMutation({
+      mutationFn: async (id: string) => check(await supabase.from('payments').update({ pending: false }).eq('id', id)),
+      onSuccess: refresh,
+    }),
+    removePayment: useMutation({
+      mutationFn: async (id: string) => check(await supabase.from('payments').delete().eq('id', id)),
+      onSuccess: refresh,
+    }),
+  }
+}
+
 /** The player taps "Got it" on a coach's note. The database only lets the player do this. */
 export function useAcknowledgeNote(logId: string) {
   const qc = useQueryClient()
@@ -289,11 +349,13 @@ export function useRealtime(logId: string) {
       channel.on('postgres_changes', { event: '*', schema: 'public', table, filter }, () =>
         qc.invalidateQueries({ queryKey: key }),
       )
-    for (const t of ['sessions', 'drills', 'goals', 'coach_notes'] as const)
+    for (const t of ['sessions', 'drills', 'goals', 'coach_notes', 'matches'] as const)
       watch(t, `log_id=eq.${logId}`, [t, logId])
     watch('log_members', `log_id=eq.${logId}`, ['members', logId])
     watch('schedule_slots', `log_id=eq.${logId}`, ['schedule'])
     watch('schedule_overrides', `log_id=eq.${logId}`, ['schedule'])
+    watch('arrangements', `log_id=eq.${logId}`, ['money'])
+    watch('payments', `log_id=eq.${logId}`, ['money'])
     watch('logs', `id=eq.${logId}`, ['logs'])
     channel.subscribe()
     return () => {

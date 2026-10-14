@@ -26,6 +26,19 @@ export interface Session {
   created_at: string
 }
 
+export interface Match {
+  id: string
+  log_id: string
+  match_date: string
+  opponent: string
+  result: 'win' | 'loss'
+  /** Free text, like "6-4, 3-6, 7-5". */
+  score: string
+  worked: string
+  fix: string
+  created_at: string
+}
+
 export interface Drill {
   id: string
   log_id: string
@@ -98,4 +111,28 @@ export interface ScheduleOverride {
   new_date: string | null
   new_start: string | null
   new_end: string | null
+}
+
+/** What a coach and a player agreed. Amounts are whole naira. */
+export interface ArrangementRow {
+  id: string
+  log_id: string
+  kind: 'package' | 'per_session'
+  sessions: number | null
+  price: number
+  start_date: string
+  /** The day the next arrangement took over. Null while this one is current. */
+  ended_on: string | null
+  created_at: string
+}
+
+export interface PaymentRow {
+  id: string
+  log_id: string
+  amount: number
+  paid_on: string
+  /** The player said they paid and the coach has not confirmed it. */
+  pending: boolean
+  created_by: string
+  created_at: string
 }

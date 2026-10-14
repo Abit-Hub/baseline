@@ -4,11 +4,13 @@ import { addDays } from 'date-fns'
 import { AlertCircle, Copy, MessageCircle } from 'lucide-react'
 import { toast } from 'sonner'
 import { FeedbackForm } from '@/components/feedback'
+import { MoneySummary, PaymentLine } from '@/components/payments'
 import { useLog } from '@/components/log-context'
 import { DayGroups, OccurrenceRow } from '@/components/schedule'
 import { ListSkeleton, PageHeader, Section } from '@/components/ui-bits'
 import { Button, buttonVariants } from '@/components/ui/button'
-import { myPlayersQuery, scheduleQuery } from '@/data/queries'
+import { moneyQuery, myPlayersQuery, scheduleQuery } from '@/data/queries'
+import { heldSessions, standing } from '@/domain/payments'
 import { attentionFor, endsAt, isoDate, occurrences } from '@/domain/schedule'
 import { agoLabel } from '@/domain/stats'
 import { askPlayerMessage, whatsappTextUrl } from '@/lib/invite'
@@ -23,6 +25,7 @@ function Players() {
   const navigate = useNavigate()
   const { data: players = [], isPending, error } = useQuery(myPlayersQuery())
   const sched = useQuery(scheduleQuery(null))
+  const money = useQuery(moneyQuery(null))
 
   const openLog = (logId: string) => { selectLog(logId); void navigate({ to: '/overview' }) }
   const nameOf = new Map(players.map((p) => [p.log_id, p.player_name || 'Unnamed player']))
@@ -39,6 +42,16 @@ function Players() {
   const todays = upcoming.filter((o) => o.date === today)
   const later = upcoming.filter((o) => o.date > today && o.date <= isoDate(addDays(now, 7)))
   const past = all.filter((o) => endsAt(o) < now)
+
+  // Each player's running balance, from their deal, their payments and what actually took place.
+  const standings = new Map(players.map((p) => {
+    const mine = (money.data?.arrangements ?? []).filter((a) => a.log_id === p.log_id)
+    const ownSlots = slots.filter((x) => x.log_id === p.log_id)
+    const ownOverrides = overrides.filter((x) => x.log_id === p.log_id)
+    return [p.log_id, mine.length ? standing(mine, (money.data?.payments ?? []).filter((x) => x.log_id === p.log_id),
+      (a) => heldSessions(ownSlots, ownOverrides, a.start_date, now, a.ended_on)) : null] as const
+  }))
+  const withDeals = [...standings.values()].filter((x) => x != null)
 
   const rows = players
     .map((p) => ({ p, reasons: attentionFor(p, past, STALE_DAYS, now) }))
@@ -57,6 +70,8 @@ function Players() {
       {error && <p className="text-sm text-destructive">Could not load your players: {error.message}</p>}
       {!isPending && !error && players.length === 0 && <FirstPlayer />}
       {isPending && <ListSkeleton rows={4} />}
+
+      {players.length > 0 && withDeals.length > 0 && <MoneySummary standings={withDeals} />}
 
       {players.length > 0 && (
         <>
@@ -91,6 +106,7 @@ function Players() {
                         {p.unseen_notes === 1 ? 'Your last note has not been seen yet' : `${p.unseen_notes} notes not seen yet`}
                       </span>
                     )}
+                    {standings.get(p.log_id) && <PaymentLine s={standings.get(p.log_id)!} />}
                     {reasons.map((r) => (
                       <span key={r} className={cn('mt-0.5 flex items-center gap-1 text-sm text-destructive')}>
                         <AlertCircle className="size-3.5 shrink-0" aria-hidden /> {r}
