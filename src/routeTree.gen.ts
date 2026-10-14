@@ -14,6 +14,7 @@ import { Route as AppRouteImport } from './routes/_app'
 import { Route as DemoRouteImport } from './routes/demo'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
+import { Route as StartRouteImport } from './routes/start'
 import { Route as AppOverviewRouteImport } from './routes/_app/overview'
 import { Route as AppPlanRouteImport } from './routes/_app/plan'
 import { Route as AppPlayersRouteImport } from './routes/_app/players'
@@ -45,6 +46,11 @@ const LoginRoute = LoginRouteImport.update({
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
   id: '/reset-password',
   path: '/reset-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const StartRoute = StartRouteImport.update({
+  id: '/start',
+  path: '/start',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AppOverviewRoute = AppOverviewRouteImport.update({
@@ -93,6 +99,7 @@ export interface FileRoutesByFullPath {
   '/demo': typeof DemoRoute
   '/login': typeof LoginRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/start': typeof StartRoute
   '/overview': typeof AppOverviewRoute
   '/plan': typeof AppPlanRoute
   '/players': typeof AppPlayersRoute
@@ -107,6 +114,7 @@ export interface FileRoutesByTo {
   '/demo': typeof DemoRoute
   '/login': typeof LoginRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/start': typeof StartRoute
   '/overview': typeof AppOverviewRoute
   '/plan': typeof AppPlanRoute
   '/players': typeof AppPlayersRoute
@@ -123,6 +131,7 @@ export interface FileRoutesById {
   '/demo': typeof DemoRoute
   '/login': typeof LoginRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/start': typeof StartRoute
   '/_app/overview': typeof AppOverviewRoute
   '/_app/plan': typeof AppPlanRoute
   '/_app/players': typeof AppPlayersRoute
@@ -139,6 +148,7 @@ export interface FileRouteTypes {
     | '/demo'
     | '/login'
     | '/reset-password'
+    | '/start'
     | '/overview'
     | '/plan'
     | '/players'
@@ -153,6 +163,7 @@ export interface FileRouteTypes {
     | '/demo'
     | '/login'
     | '/reset-password'
+    | '/start'
     | '/overview'
     | '/plan'
     | '/players'
@@ -168,6 +179,7 @@ export interface FileRouteTypes {
     | '/demo'
     | '/login'
     | '/reset-password'
+    | '/start'
     | '/_app/overview'
     | '/_app/plan'
     | '/_app/players'
@@ -184,6 +196,7 @@ export interface RootRouteChildren {
   DemoRoute: typeof DemoRoute
   LoginRoute: typeof LoginRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
+  StartRoute: typeof StartRoute
   JoinCodeRoute: typeof JoinCodeRoute
 }
 
@@ -222,6 +235,13 @@ declare module '@tanstack/react-router' {
       path: '/reset-password'
       fullPath: '/reset-password'
       preLoaderRoute: typeof ResetPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/start': {
+      id: '/start'
+      path: '/start'
+      fullPath: '/start'
+      preLoaderRoute: typeof StartRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_app/overview': {
@@ -311,6 +331,7 @@ const rootRouteChildren: RootRouteChildren = {
   DemoRoute: DemoRoute,
   LoginRoute: LoginRoute,
   ResetPasswordRoute: ResetPasswordRoute,
+  StartRoute: StartRoute,
   JoinCodeRoute: JoinCodeRoute,
 }
 export const routeTree = rootRouteImport

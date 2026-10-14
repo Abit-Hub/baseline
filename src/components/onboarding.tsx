@@ -49,7 +49,7 @@ export function Onboarding() {
         </summary>
         <ol className="mt-3 list-decimal space-y-1 pl-5 text-muted-foreground">
           <li>Open the link your player sent you, while signed in here.</li>
-          <li>Tap “Join this log as coach”.</li>
+          <li>Tap “Join as their coach”.</li>
           <li>Repeat for every player. They all appear on your Players page.</li>
         </ol>
         <p className="mt-3 text-muted-foreground">

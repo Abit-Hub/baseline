@@ -1,6 +1,7 @@
 import { useForm } from '@tanstack/react-form'
 import { format, parseISO } from 'date-fns'
 import { useAtom } from 'jotai'
+import { useState } from 'react'
 import { toast } from 'sonner'
 import { z } from 'zod'
 import { SessionNotes } from '@/components/coach-notes'
@@ -59,6 +60,8 @@ function SessionForm({ session, date, onDone }: { session: Session | null; date?
   const insert = useInsertRow('sessions', log.id)
   const update = useUpdateRow('sessions', log.id)
   const remove = useDeleteRow('sessions', log.id)
+  // Date, focus, feel and the fix are enough. The rest opens on request, or when editing an entry that has it.
+  const [more, setMore] = useState(Boolean(session && (session.worked || session.well)))
 
   const form = useForm({
     defaultValues: {
@@ -139,8 +142,8 @@ function SessionForm({ session, date, onDone }: { session: Session | null; date?
       {([
         ['worked', 'Details', 'Drills, rallies, anything you covered'],
         ['well', 'What went well', ''],
-        ['fix', 'Fix next time', ''],
-      ] as const).map(([name, label, placeholder]) => (
+        ['fix', 'Fix next time', 'The one thing to work on'],
+      ] as const).filter(([name]) => more || name === 'fix').map(([name, label, placeholder]) => (
         <form.Field key={name} name={name}>
           {(f) => (
             <div className="flex flex-col gap-1.5">
@@ -151,6 +154,12 @@ function SessionForm({ session, date, onDone }: { session: Session | null; date?
           )}
         </form.Field>
       ))}
+
+      {!more && (
+        <button type="button" onClick={() => setMore(true)} className="self-start text-sm font-medium text-primary underline underline-offset-4">
+          Add details and what went well
+        </button>
+      )}
 
       <div className="flex flex-wrap items-center justify-between gap-2">
         {session ? (

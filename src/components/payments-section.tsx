@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { differenceInCalendarDays, format, parseISO } from 'date-fns'
 import { Wallet } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import { useLog } from '@/components/log-context'
 import { PaymentsBlock } from '@/components/payments'
@@ -13,6 +13,7 @@ import { Label } from '@/components/ui/label'
 import { moneyQuery, scheduleQuery, useMoneyActions, useScheduleActions, type ArrangementInput } from '@/data/queries'
 import { heldSessions, standing, type Arrangement } from '@/domain/payments'
 import { endsAt, occurrences } from '@/domain/schedule'
+import { digits, withCommas } from '@/lib/money'
 import { useNow } from '@/lib/use-now'
 import { cn } from '@/lib/utils'
 
@@ -25,6 +26,11 @@ export function PaymentsSection({ logId }: { logId: string }) {
   const { setOverride, clearOverride } = useScheduleActions(logId)
   const now = useNow()
   const [dialog, setDialog] = useState<'start' | 'edit' | null>(null)
+
+  // Arriving from a player's money line on the Players page: jump to this section once it exists.
+  useEffect(() => {
+    if (money.isSuccess && sched.isSuccess && window.location.hash === '#payments') document.getElementById('payments')?.scrollIntoView()
+  }, [money.isSuccess, sched.isSuccess])
 
   const slots = sched.data?.slots ?? []
   const overrides = sched.data?.overrides ?? []
@@ -100,8 +106,8 @@ function DealForm({ initial, busy, onSubmit }: { initial: Arrangement | null; bu
   const [sessions, setSessions] = useState(initial?.sessions ? String(initial.sessions) : '')
   const [price, setPrice] = useState(initial ? String(initial.price) : '')
   const [start, setStart] = useState(initial?.start_date ?? format(new Date(), 'yyyy-MM-dd'))
-  const n = Number(sessions.replace(/\D/g, ''))
-  const p = Number(price.replace(/[^\d]/g, ''))
+  const n = Number(digits(sessions))
+  const p = Number(digits(price))
   const valid = p > 0 && (kind === 'per_session' || n > 0) && Boolean(start)
 
   return (
@@ -118,12 +124,12 @@ function DealForm({ initial, busy, onSubmit }: { initial: Arrangement | null; bu
       {kind === 'package' && (
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="d-sessions">Sessions in the bundle</Label>
-          <Input id="d-sessions" inputMode="numeric" className="w-32" placeholder="e.g. 14" value={sessions} onChange={(e) => setSessions(e.target.value)} />
+          <Input id="d-sessions" inputMode="numeric" className="w-32" placeholder="e.g. 14" value={sessions} onChange={(e) => setSessions(digits(e.target.value))} />
         </div>
       )}
       <div className="flex flex-col gap-1.5">
         <Label htmlFor="d-price">{kind === 'package' ? 'Price for the whole bundle (₦)' : 'Price per session (₦)'}</Label>
-        <Input id="d-price" inputMode="numeric" placeholder={kind === 'package' ? '30000' : '3500'} value={price} onChange={(e) => setPrice(e.target.value)} />
+        <Input id="d-price" inputMode="numeric" placeholder={kind === 'package' ? '30,000' : '3,500'} value={withCommas(price)} onChange={(e) => setPrice(digits(e.target.value))} />
       </div>
       <div className="flex flex-col gap-1.5">
         <Label htmlFor="d-start">Counting from</Label>

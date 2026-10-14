@@ -2,7 +2,7 @@
   "name": "Baseline",
   "short_name": "Baseline",
   "description": "A training log shared between a player and their coach.",
-  "start_url": "/overview",
+  "start_url": "/start",
   "scope": "/",
   "display": "standalone",
   "background_color": "#4a45b8",

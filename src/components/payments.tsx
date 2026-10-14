@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input'
 import { arrangementLabel, naira, needsLook, standingLine, statementText, type Payment, type Standing } from '@/domain/payments'
 import { formatTime, type Occurrence } from '@/domain/schedule'
 import { whatsappTextUrl } from '@/lib/invite'
+import { digits, withCommas } from '@/lib/money'
 import { cn } from '@/lib/utils'
 
 /** The money line under a player's name. */
@@ -75,7 +76,7 @@ export function PaymentsBlock({ name, s, payments, recent, canManage, actions, b
   const [amount, setAmount] = useState('')
   const a = s.active
   if (!a) return null
-  const value = Number(amount.replace(/[^\d]/g, ''))
+  const value = Number(digits(amount))
   const used = a.sessions ? Math.min(1, s.used / a.sessions) : 0
   const sorted = [...payments].sort((x, y) => y.paid_on.localeCompare(x.paid_on))
 
@@ -145,7 +146,7 @@ export function PaymentsBlock({ name, s, payments, recent, canManage, actions, b
       <form className="mt-3 flex flex-wrap items-end gap-2" onSubmit={(e) => { e.preventDefault(); if (value > 0) { onRecord(value); setAmount('') } }}>
         <div className="flex min-w-36 flex-1 flex-col gap-1.5">
           <label htmlFor="pay-amount" className="text-sm font-medium">{canManage ? 'Record a payment' : 'Tell your coach you paid'}</label>
-          <Input id="pay-amount" inputMode="numeric" placeholder="₦ amount" value={amount} onChange={(e) => setAmount(e.target.value)} />
+          <Input id="pay-amount" inputMode="numeric" placeholder="₦ amount" value={withCommas(amount)} onChange={(e) => setAmount(digits(e.target.value))} />
         </div>
         <Button type="submit" variant="outline" disabled={busy || !(value > 0)}>{canManage ? 'Add' : 'I’ve paid'}</Button>
         {canManage && (

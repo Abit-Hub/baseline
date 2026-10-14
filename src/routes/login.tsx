@@ -14,7 +14,7 @@ export const Route = createFileRoute('/login')({
   validateSearch: search,
   beforeLoad: async ({ search }) => {
     const { data } = await supabase.auth.getSession()
-    if (data.session) throw redirect({ to: search.redirect ?? '/overview' })
+    if (data.session) throw redirect({ to: search.redirect ?? '/start' })
   },
   component: Login,
 })
@@ -52,7 +52,7 @@ function Login() {
         })
         if (error) return void toast.error(error.message)
       }
-      await navigate({ to: back ?? '/overview' })
+      await navigate({ to: back ?? '/start' })
     },
   })
 

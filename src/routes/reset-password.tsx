@@ -33,7 +33,7 @@ function ResetPassword() {
     setBusy(false)
     if (error) return void toast.error(error.message)
     toast.success('Password updated')
-    await navigate({ to: '/overview' })
+    await navigate({ to: '/start' })
   }
 
   return (

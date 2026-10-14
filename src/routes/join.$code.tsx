@@ -33,7 +33,7 @@ function Join() {
         onClick={() => join.mutate({ code }, {
           onSuccess: (id) => { setActive(id); void navigate({ to: '/overview' }) },
         })}>
-        {join.isPending ? 'Joining…' : 'Join this log as coach'}
+        {join.isPending ? 'Joining…' : 'Join as their coach'}
       </Button>
       {join.error && <p className="text-sm text-destructive">{join.error.message}</p>}
     </main>

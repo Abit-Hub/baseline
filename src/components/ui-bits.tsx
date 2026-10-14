@@ -1,4 +1,4 @@
-import type { LucideIcon } from 'lucide-react'
+import { ChevronDown, type LucideIcon } from 'lucide-react'
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { Button } from '@/components/ui/button'
 import { RATINGS } from '@/domain/constants'
@@ -25,6 +25,22 @@ export function Section({ title, hint, children, className, id }: { title: strin
       </div>
       {children}
     </section>
+  )
+}
+
+/** A section the reader opens when they want it. Keeps long pages short. */
+export function CollapsibleSection({ title, summary, children, className }: { title: string; summary?: string; children: ReactNode; className?: string }) {
+  return (
+    <details className={cn('group border-t py-1', className)}>
+      <summary className="flex cursor-pointer list-none items-center justify-between gap-3 py-4 [&::-webkit-details-marker]:hidden">
+        <span>
+          <span className="block font-display text-2xl leading-tight">{title}</span>
+          {summary && <span className="block text-sm text-muted-foreground">{summary}</span>}
+        </span>
+        <ChevronDown className="size-5 shrink-0 text-muted-foreground transition-transform duration-300 group-open:rotate-180" aria-hidden />
+      </summary>
+      <div className="pb-6">{children}</div>
+    </details>
   )
 }
 

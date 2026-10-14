@@ -13,7 +13,7 @@ const delay = (ms: number) => ({ '--d': `${ms}ms` }) as CSSProperties
 
 function Cta({ signedIn, size = 'lg', label = 'Start your log' }: { signedIn: boolean; size?: 'lg' | 'default'; label?: string }) {
   return signedIn ? (
-    <Link to="/overview" className={cn(buttonVariants({ size }), 'group')}>
+    <Link to="/start" className={cn(buttonVariants({ size }), 'group')}>
       Open your log <ArrowRight className="transition-transform group-hover:translate-x-1" />
     </Link>
   ) : (

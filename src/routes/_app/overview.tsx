@@ -9,7 +9,7 @@ import { PaymentsSection } from '@/components/payments-section'
 import { SessionPrompt } from '@/components/session-prompt'
 import { useLog } from '@/components/log-context'
 import { RatingChart } from '@/components/rating-chart'
-import { EmptyState, OverviewSkeleton, PageHeader, RatingPips, Section } from '@/components/ui-bits'
+import { CollapsibleSection, EmptyState, OverviewSkeleton, PageHeader, RatingPips, Section } from '@/components/ui-bits'
 import { Button } from '@/components/ui/button'
 import { rowsQuery, scheduleQuery } from '@/data/queries'
 import { dayLabel, endsAt, occurrences, timeRange } from '@/domain/schedule'
@@ -42,6 +42,40 @@ function Overview() {
   const topCount = counts[0]?.[1] ?? 1
   const goalsDone = (goals.data ?? []).filter((g) => g.done).length
   const sessionDates = new Map(list.map((x) => [x.id, format(parseISO(x.session_date), 'd MMM')]))
+
+  const stats = loading || list.length === 0 ? null : (
+    <>
+      <dl className="grid grid-cols-2 gap-y-6 border-y py-6 sm:grid-cols-4">
+        <Stat label="Sessions logged" value={String(list.length)} big />
+        <Stat label="Average feel, last 5" value={avg ? avg.toFixed(1) : '–'} />
+        <Stat label="Against the 3 before"
+          value={tr == null ? '–' : `${tr > 0.05 ? '▲' : tr < -0.05 ? '▼' : '='} ${Math.abs(tr).toFixed(1)}`} />
+        <Stat label="Drills this week" value={String(drillsThisWeek)}
+          hint={latest ? `${countWithin(list, 7)} session${countWithin(list, 7) === 1 ? '' : 's'} this week` : undefined} />
+      </dl>
+      <Section title="How sessions have felt" className="border-t-0 pt-8">
+        <RatingChart newestFirst={list} />
+      </Section>
+    </>
+  )
+
+  const workNext = !loading && latest?.fix ? (
+    <Section title="Work on next" hint={`From ${agoLabel(latest.session_date).toLowerCase()}`} className="border-t-0 pt-0">
+      <Quote label={isPlayer ? 'Your note' : `${playerName}’s note`}>{latest.fix}</Quote>
+    </Section>
+  ) : null
+
+  const notesSection = (isCoach || (notes.data?.length ?? 0) > 0) ? (
+    <Section id="coach-notes" title={isCoach ? 'Your notes for the player' : 'From your coach'}
+      hint={isCoach ? 'Visible to the player. Notes on a specific session are added from Sessions.' : undefined}>
+      <div className="flex flex-col gap-5">
+        {(notes.data?.length ?? 0) > 0 && <NoteList notes={(notes.data ?? []).slice(0, 3)} showSession={sessionDates} />}
+        <NoteComposer label="Write a note for the player" />
+      </div>
+    </Section>
+  ) : null
+
+  const paymentsSection = loading ? null : <PaymentsSection logId={log.id} />
 
   return (
     <>
@@ -103,78 +137,45 @@ function Overview() {
           onLogSession={() => setEditor({ open: true, session: null })} />
       )}
 
-      {loading ? null : list.length === 0 ? (
+      {loading ? null : list.length === 0 && (
         <EmptyState title="Nothing logged yet" icon={NotebookPen}
           action={isPlayer && <Button onClick={() => setEditor({ open: true, session: null })}>Log your first session</Button>}>
           {isPlayer
             ? 'Add a session right after you leave the court, while it is fresh.'
             : `${playerName} has not logged a session yet. You can still leave a note below.`}
         </EmptyState>
-      ) : (
-        <>
-          <dl className="grid grid-cols-2 gap-y-6 border-y py-6 sm:grid-cols-4">
-            <Stat label="Sessions logged" value={String(list.length)} big />
-            <Stat label="Average feel, last 5" value={avg ? avg.toFixed(1) : '–'} />
-            <Stat label="Against the 3 before"
-              value={tr == null ? '–' : `${tr > 0.05 ? '▲' : tr < -0.05 ? '▼' : '='} ${Math.abs(tr).toFixed(1)}`} />
-            <Stat label="Drills this week" value={String(drillsThisWeek)}
-              hint={latest ? `${countWithin(list, 7)} session${countWithin(list, 7) === 1 ? '' : 's'} this week` : undefined} />
-          </dl>
-
-          <Section title="How sessions have felt" className="border-t-0 pt-8">
-            <RatingChart newestFirst={list} />
-          </Section>
-
-          {latest?.fix && (
-            <Section title="Work on next" hint={`From ${agoLabel(latest.session_date).toLowerCase()}`}>
-              <Quote label={isPlayer ? 'Your note' : `${playerName}’s note`}>{latest.fix}</Quote>
-            </Section>
-          )}
-
-          {counts.length > 0 && (
-            <Section title="Where the time went">
-              <ul className="flex flex-col gap-2.5">
-                {counts.map(([name, n]) => (
-                  <li key={name} className="grid grid-cols-[6.5rem_1fr_2rem] items-center gap-3 text-sm">
-                    <span>{name}</span>
-                    <span className="h-2.5 rounded-full bg-muted">
-                      <span className="block h-full rounded-full bg-primary" style={{ width: `${Math.max(6, (n / topCount) * 100)}%` }} />
-                    </span>
-                    <span className="tabular text-right text-muted-foreground">{n}</span>
-                  </li>
-                ))}
-              </ul>
-            </Section>
-          )}
-        </>
       )}
 
-      {(isCoach || (notes.data?.length ?? 0) > 0) && (
-        <Section id="coach-notes" title={isCoach ? 'Your notes for the player' : 'From your coach'}
-          hint={isCoach ? 'Visible to the player. Notes on a specific session are added from Sessions.' : undefined}>
-          <div className="flex flex-col gap-5">
-            {(notes.data?.length ?? 0) > 0 && <NoteList notes={(notes.data ?? []).slice(0, 3)} showSession={sessionDates} />}
-            <NoteComposer label="Write a note for the player" />
-          </div>
-        </Section>
-      )}
+      {/* The coach starts with notes and money. The player starts with what to work on and what the coach said. */}
+      {isCoach ? <>{notesSection}{paymentsSection}{workNext}{stats}</> : <>{workNext}{notesSection}{stats}{paymentsSection}</>}
 
-      {!loading && <PaymentsSection logId={log.id} />}
-
-      {!loading && list.length > 0 && (
-        <Section title="Progress report">
-          <p className="text-sm text-muted-foreground">A one-page summary of {isPlayer ? 'your' : `${playerName}’s`} sessions, matches and goals. Print it or save it as a PDF.</p>
-          <Link to="/report" className="mt-3 inline-block text-sm font-medium text-primary underline underline-offset-4">Open the report</Link>
-        </Section>
+      {!loading && counts.length > 0 && (
+        <CollapsibleSection title="Where the time went" summary={`${counts[0][0]} most, across ${list.length} sessions`}>
+          <ul className="flex flex-col gap-2.5">
+            {counts.map(([name, n]) => (
+              <li key={name} className="grid grid-cols-[6.5rem_1fr_2rem] items-center gap-3 text-sm">
+                <span>{name}</span>
+                <span className="h-2.5 rounded-full bg-muted">
+                  <span className="block h-full rounded-full bg-primary" style={{ width: `${Math.max(6, (n / topCount) * 100)}%` }} />
+                </span>
+                <span className="tabular text-right text-muted-foreground">{n}</span>
+              </li>
+            ))}
+          </ul>
+        </CollapsibleSection>
       )}
 
       {(goals.data?.length ?? 0) > 0 && (
-        <Section title="Goals">
-          <p className="text-sm text-muted-foreground">{goalsDone} of {goals.data?.length} goals reached.</p>
-          <Link to="/plan" search={{ tab: 'goals' }} className="mt-3 inline-block text-sm font-medium text-primary underline underline-offset-4">
-            Open goals
-          </Link>
-        </Section>
+        <CollapsibleSection title="Goals" summary={`${goalsDone} of ${goals.data?.length} reached`}>
+          <Link to="/plan" search={{ tab: 'goals' }} className="text-sm font-medium text-primary underline underline-offset-4">Open goals</Link>
+        </CollapsibleSection>
+      )}
+
+      {!loading && list.length > 0 && (
+        <CollapsibleSection title="Progress report" summary="A one-page summary to print or send">
+          <p className="text-sm text-muted-foreground">Sessions, matches and goals for {isPlayer ? 'you' : playerName}, over the period you choose. Save it as a PDF to send to a parent.</p>
+          <Link to="/report" className="mt-3 inline-block text-sm font-medium text-primary underline underline-offset-4">Open the report</Link>
+        </CollapsibleSection>
       )}
     </>
   )

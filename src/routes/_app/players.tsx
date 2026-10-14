@@ -27,7 +27,7 @@ function Players() {
   const sched = useQuery(scheduleQuery(null))
   const money = useQuery(moneyQuery(null))
 
-  const openLog = (logId: string) => { selectLog(logId); void navigate({ to: '/overview' }) }
+  const openLog = (logId: string, hash?: string) => { selectLog(logId); void navigate({ to: '/overview', hash }) }
   const nameOf = new Map(players.map((p) => [p.log_id, p.player_name || 'Unnamed player']))
 
   // Only the logs I coach. A coach may also keep a log of their own.
@@ -95,7 +95,7 @@ function Players() {
             {rows.map(({ p, reasons }) => (
               <li key={p.log_id}>
                 <button type="button" onClick={() => openLog(p.log_id)} aria-current={p.log_id === log.id ? 'true' : undefined}
-                  className="flex w-full items-center gap-4 px-4 py-3.5 text-left transition-colors hover:bg-accent/50 focus-visible:bg-accent/50">
+                  className={cn('flex w-full items-center gap-4 px-4 pt-3.5 text-left transition-colors hover:bg-accent/50 focus-visible:bg-accent/50', standings.get(p.log_id) ? 'pb-1.5' : 'pb-3.5')}>
                   <span className="min-w-0 flex-1">
                     <span className="block truncate font-medium">{p.player_name || 'Unnamed player'}</span>
                     <span className="mt-0.5 block text-sm text-muted-foreground">
@@ -106,7 +106,6 @@ function Players() {
                         {p.unseen_notes === 1 ? 'Your last note has not been seen yet' : `${p.unseen_notes} notes not seen yet`}
                       </span>
                     )}
-                    {standings.get(p.log_id) && <PaymentLine s={standings.get(p.log_id)!} />}
                     {reasons.map((r) => (
                       <span key={r} className={cn('mt-0.5 flex items-center gap-1 text-sm text-destructive')}>
                         <AlertCircle className="size-3.5 shrink-0" aria-hidden /> {r}
@@ -122,6 +121,12 @@ function Players() {
                     <span className="block text-xs text-muted-foreground">sessions</span>
                   </span>
                 </button>
+                {standings.get(p.log_id) && (
+                  <button type="button" onClick={() => openLog(p.log_id, 'payments')} aria-label={`Payments for ${p.player_name}`}
+                    className="block w-full px-4 pb-3.5 text-left transition-colors hover:bg-accent/50 focus-visible:bg-accent/50">
+                    <PaymentLine s={standings.get(p.log_id)!} />
+                  </button>
+                )}
               </li>
             ))}
           </ul>
@@ -144,7 +149,7 @@ function FirstPlayer() {
   const steps = [
     ['Ask a player to sign up', 'Send them this message. It has the sign-up link.'],
     ['They send you their coach link', 'From their Settings, one tap on WhatsApp.'],
-    ['Open it and tap “Join this log as coach”', 'Make sure you are signed in first. They appear here straight away.'],
+    ['Open it and tap “Join as coach”', 'Make sure you are signed in first. They appear here straight away.'],
   ]
   return (
     <div className="rounded-xl border bg-card p-5 sm:p-6">

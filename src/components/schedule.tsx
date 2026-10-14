@@ -123,7 +123,7 @@ export function OccurrenceView({ occ, title, prep, actions, onOpenLog }: {
             </form>
           ) : (
             <div className="flex flex-wrap gap-2">
-              {onOpenLog && <Button size="sm" onClick={onOpenLog}>Open log</Button>}
+              {onOpenLog && <Button size="sm" onClick={onOpenLog}>Open player</Button>}
               {occ.cancelled || occ.moved ? (
                 <Button size="sm" variant="outline" disabled={actions.pending} onClick={actions.restore}>Back to the usual time</Button>
               ) : (
