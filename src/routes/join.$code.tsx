@@ -2,8 +2,10 @@ import { createFileRoute, redirect, useNavigate } from '@tanstack/react-router'
 import { useSetAtom } from 'jotai'
 import { Button } from '@/components/ui/button'
 import { useJoinLog } from '@/data/queries'
+import { setView } from '@/lib/role'
 import { supabase } from '@/lib/supabase'
 import { activeLogIdAtom } from '@/state/atoms'
+import { Wordmark } from '@/components/wordmark'
 
 export const Route = createFileRoute('/join/$code')({
   beforeLoad: async ({ location }) => {
@@ -22,7 +24,7 @@ function Join() {
   return (
     <main className="mx-auto flex min-h-svh w-full max-w-md flex-col justify-center gap-8 px-4 py-10">
       <header>
-        <p className="text-sm font-medium tracking-wide text-primary uppercase">Baseline</p>
+        <Wordmark className="text-3xl" />
         <h1 className="mt-1 text-5xl leading-none">You’ve been invited</h1>
         <p className="mt-3 text-muted-foreground">
           You will join as the coach. You can read the player’s sessions, drills and goals, leave coach notes,
@@ -31,7 +33,7 @@ function Join() {
       </header>
       <Button size="lg" disabled={join.isPending}
         onClick={() => join.mutate({ code }, {
-          onSuccess: (id) => { setActive(id); void navigate({ to: '/overview' }) },
+          onSuccess: (id) => { setActive(id); void setView('coach'); void navigate({ to: '/coach/players/$logId', params: { logId: id } }) },
         })}>
         {join.isPending ? 'Joining…' : 'Join as their coach'}
       </Button>

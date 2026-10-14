@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
+import { useEffect, useRef, type CSSProperties, type ReactNode } from 'react'
 import { cn } from '@/lib/utils'
 import { prefersReducedMotion, useInView } from './motion'
 
@@ -72,88 +72,6 @@ export function Doodle({ name, className, rotate = 0 }: { name: Name; className?
         <g className="doodle-draw">{PATHS[name]}</g>
       </svg>
     </span>
-  )
-}
-
-/* ---------------------------------------------------------- court sketch */
-
-// A doubles court seen from above, in feet scaled by 7.78: 36 wide, 78 long.
-const LINES = [
-  'M20 20H300V620H20Z',
-  'M55 20V620M265 20V620',
-  'M55 158H265M55 482H265',
-  'M160 158V482',
-  'M160 20v12M160 620v-12',
-]
-
-const grow = (on: boolean, ms = 1100): CSSProperties => ({
-  strokeDasharray: 1, strokeDashoffset: on ? 0 : 1, transition: `stroke-dashoffset ${ms}ms cubic-bezier(0.5, 0, 0.2, 1)`,
-})
-const fade = (on: boolean, d = 0): CSSProperties => ({ opacity: on ? 1 : 0, transition: `opacity 600ms ease ${d}ms` })
-
-/**
- * The how-it-works picture: a court drawn like a notebook sketch. `step` picks what
- * is marked on it (1 write, 2 coach replies, 3 pick up), 0 shows all three.
- */
-export function CourtSketch({ step }: { step: 0 | 1 | 2 | 3 }) {
-  const [ref, seen] = useInView<HTMLDivElement>(0.25)
-  const on = (n: number) => step === 0 || step === n
-  const [bounce, setBounce] = useState(false)
-  useEffect(() => { setBounce(seen && !prefersReducedMotion()) }, [seen])
-
-  return (
-    <div ref={ref} className={cn('relative mx-auto w-full max-w-[19rem] rounded-2xl border bg-card p-4 shadow-xl shadow-primary/10', seen && 'in-view')}>
-      <svg viewBox="0 0 320 640" role="img" className="h-auto w-full" fontFamily="var(--font-display)"
-        aria-label="A tennis court sketched from above: you at the baseline, your coach at the far end, and a ball travelling between you">
-        {/* the court */}
-        <rect x="20" y="320" width="280" height="300" className="fill-primary/[0.04]" />
-        <g fill="none" className="stroke-foreground/70" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
-          {LINES.map((d, i) => <path key={d} d={d} pathLength="1" className="draw" style={{ '--d': `${i * 220}ms` } as CSSProperties} />)}
-        </g>
-        {/* the net */}
-        <g className="fade-after" style={{ '--d': '1.2s' } as CSSProperties}>
-          <path d="M6 320H314" className="stroke-primary" strokeWidth="3" strokeDasharray="2 6" strokeLinecap="round" fill="none" />
-          <circle cx="6" cy="320" r="4" className="fill-primary" /><circle cx="314" cy="320" r="4" className="fill-primary" />
-          <text x="146" y="311" textAnchor="end" fontSize="15" fontStyle="italic" className="fill-muted-foreground">net</text>
-        </g>
-
-        {/* 1 · you write it down */}
-        <g style={fade(on(1))}>
-          <circle cx="160" cy="596" r="9" className="fill-primary" />
-          <circle cx="160" cy="596" r="15" fill="none" className="stroke-primary/40" strokeWidth="1.5" />
-          <text x="182" y="602" fontSize="24" fontStyle="italic" className="fill-foreground">you</text>
-          <text x="64" y="556" fontSize="19" fontStyle="italic" className="fill-primary">log it after</text>
-          <path d="M122 562C134 576 140 586 146 592M139 590l8 3-1-9" fill="none" className="stroke-primary" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-        </g>
-
-        {/* 2 · the coach replies */}
-        <g style={fade(on(2))}>
-          <path d="M160 580C60 470 70 190 196 96" fill="none" className="stroke-primary/30" strokeWidth="2.4" strokeLinecap="round" strokeDasharray="3 7" />
-          <path d="M160 580C60 470 70 190 196 96" fill="none" className="stroke-primary" strokeWidth="2.4" strokeLinecap="round" pathLength="1" style={grow(on(2), 1400)} />
-          <circle cx="206" cy="64" r="9" className="fill-foreground" />
-          <text x="226" y="70" fontSize="24" fontStyle="italic" className="fill-foreground">coach</text>
-          <g transform="translate(196 96)" style={fade(on(2), 900)}><BallDot r={9} /></g>
-          <text x="184" y="196" fontSize="19" fontStyle="italic" className="fill-primary">a note</text>
-          <text x="184" y="218" fontSize="19" fontStyle="italic" className="fill-primary">comes back</text>
-        </g>
-
-        {/* 3 · pick up where you stopped */}
-        <g style={fade(on(3))}>
-          <rect x="165" y="327" width="95" height="150" rx="6" className="fill-primary/15 stroke-primary" strokeWidth="2" strokeDasharray="4 5" />
-          <text x="212" y="392" textAnchor="middle" fontSize="19" fontStyle="italic" className="fill-foreground">last time:</text>
-          <text x="212" y="416" textAnchor="middle" fontSize="19" fontStyle="italic" className="fill-primary">elbow in</text>
-          <path d="M238 345c14 4 14 20 0 24" fill="none" className="stroke-primary" strokeWidth="2" strokeLinecap="round" />
-        </g>
-
-        {/* a ball that keeps rallying while nothing is selected */}
-        {bounce && step === 0 && (
-          <g transform="translate(90 590)">
-            <BallDot r={8} />
-            <animateMotion dur="3.6s" repeatCount="indefinite" path="M0 0 Q70 -170 140 0 T0 0" />
-          </g>
-        )}
-      </svg>
-    </div>
   )
 }
 

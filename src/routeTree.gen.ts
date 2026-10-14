@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppRouteImport } from './routes/_app'
+import { Route as CoachRouteImport } from './routes/coach'
 import { Route as DemoRouteImport } from './routes/demo'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
@@ -18,12 +19,20 @@ import { Route as StartRouteImport } from './routes/start'
 import { Route as AppOverviewRouteImport } from './routes/_app/overview'
 import { Route as AppPlanRouteImport } from './routes/_app/plan'
 import { Route as AppPlayersRouteImport } from './routes/_app/players'
+import { Route as AppProgressRouteImport } from './routes/_app/progress'
 import { Route as AppReportRouteImport } from './routes/_app/report'
 import { Route as AppScheduleRouteImport } from './routes/_app/schedule'
 import { Route as AppSessionsRouteImport } from './routes/_app/sessions'
 import { Route as AppSettingsRouteImport } from './routes/_app/settings'
+import { Route as CoachIndexRouteImport } from './routes/coach/index'
+import { Route as CoachMoneyRouteImport } from './routes/coach/money'
+import { Route as CoachScheduleRouteImport } from './routes/coach/schedule'
+import { Route as CoachSettingsRouteImport } from './routes/coach/settings'
 import { Route as InviteCodeRouteImport } from './routes/invite.$code'
 import { Route as JoinCodeRouteImport } from './routes/join.$code'
+import { Route as CoachPlayersIndexRouteImport } from './routes/coach/players/index'
+import { Route as CoachPlayersLogIdRouteImport } from './routes/coach/players/$logId'
+import { Route as CoachReportLogIdRouteImport } from './routes/coach/report/$logId'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -32,6 +41,11 @@ const IndexRoute = IndexRouteImport.update({
 } as any)
 const AppRoute = AppRouteImport.update({
   id: '/_app',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CoachRoute = CoachRouteImport.update({
+  id: '/coach',
+  path: '/coach',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DemoRoute = DemoRouteImport.update({
@@ -69,6 +83,11 @@ const AppPlayersRoute = AppPlayersRouteImport.update({
   path: '/players',
   getParentRoute: () => AppRoute,
 } as any)
+const AppProgressRoute = AppProgressRouteImport.update({
+  id: '/progress',
+  path: '/progress',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppReportRoute = AppReportRouteImport.update({
   id: '/report',
   path: '/report',
@@ -89,6 +108,26 @@ const AppSettingsRoute = AppSettingsRouteImport.update({
   path: '/settings',
   getParentRoute: () => AppRoute,
 } as any)
+const CoachIndexRoute = CoachIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => CoachRoute,
+} as any)
+const CoachMoneyRoute = CoachMoneyRouteImport.update({
+  id: '/money',
+  path: '/money',
+  getParentRoute: () => CoachRoute,
+} as any)
+const CoachScheduleRoute = CoachScheduleRouteImport.update({
+  id: '/schedule',
+  path: '/schedule',
+  getParentRoute: () => CoachRoute,
+} as any)
+const CoachSettingsRoute = CoachSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => CoachRoute,
+} as any)
 const InviteCodeRoute = InviteCodeRouteImport.update({
   id: '/invite/$code',
   path: '/invite/$code',
@@ -99,9 +138,25 @@ const JoinCodeRoute = JoinCodeRouteImport.update({
   path: '/join/$code',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CoachPlayersIndexRoute = CoachPlayersIndexRouteImport.update({
+  id: '/players/',
+  path: '/players/',
+  getParentRoute: () => CoachRoute,
+} as any)
+const CoachPlayersLogIdRoute = CoachPlayersLogIdRouteImport.update({
+  id: '/players/$logId',
+  path: '/players/$logId',
+  getParentRoute: () => CoachRoute,
+} as any)
+const CoachReportLogIdRoute = CoachReportLogIdRouteImport.update({
+  id: '/report/$logId',
+  path: '/report/$logId',
+  getParentRoute: () => CoachRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/coach': typeof CoachRouteWithChildren
   '/demo': typeof DemoRoute
   '/login': typeof LoginRoute
   '/reset-password': typeof ResetPasswordRoute
@@ -109,12 +164,20 @@ export interface FileRoutesByFullPath {
   '/overview': typeof AppOverviewRoute
   '/plan': typeof AppPlanRoute
   '/players': typeof AppPlayersRoute
+  '/progress': typeof AppProgressRoute
   '/report': typeof AppReportRoute
   '/schedule': typeof AppScheduleRoute
   '/sessions': typeof AppSessionsRoute
   '/settings': typeof AppSettingsRoute
+  '/coach/money': typeof CoachMoneyRoute
+  '/coach/schedule': typeof CoachScheduleRoute
+  '/coach/settings': typeof CoachSettingsRoute
   '/invite/$code': typeof InviteCodeRoute
   '/join/$code': typeof JoinCodeRoute
+  '/coach/': typeof CoachIndexRoute
+  '/coach/players/$logId': typeof CoachPlayersLogIdRoute
+  '/coach/report/$logId': typeof CoachReportLogIdRoute
+  '/coach/players/': typeof CoachPlayersIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -125,17 +188,26 @@ export interface FileRoutesByTo {
   '/overview': typeof AppOverviewRoute
   '/plan': typeof AppPlanRoute
   '/players': typeof AppPlayersRoute
+  '/progress': typeof AppProgressRoute
   '/report': typeof AppReportRoute
   '/schedule': typeof AppScheduleRoute
   '/sessions': typeof AppSessionsRoute
   '/settings': typeof AppSettingsRoute
+  '/coach/money': typeof CoachMoneyRoute
+  '/coach/schedule': typeof CoachScheduleRoute
+  '/coach/settings': typeof CoachSettingsRoute
   '/invite/$code': typeof InviteCodeRoute
   '/join/$code': typeof JoinCodeRoute
+  '/coach': typeof CoachIndexRoute
+  '/coach/players/$logId': typeof CoachPlayersLogIdRoute
+  '/coach/report/$logId': typeof CoachReportLogIdRoute
+  '/coach/players': typeof CoachPlayersIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/_app': typeof AppRouteWithChildren
+  '/coach': typeof CoachRouteWithChildren
   '/demo': typeof DemoRoute
   '/login': typeof LoginRoute
   '/reset-password': typeof ResetPasswordRoute
@@ -143,17 +215,26 @@ export interface FileRoutesById {
   '/_app/overview': typeof AppOverviewRoute
   '/_app/plan': typeof AppPlanRoute
   '/_app/players': typeof AppPlayersRoute
+  '/_app/progress': typeof AppProgressRoute
   '/_app/report': typeof AppReportRoute
   '/_app/schedule': typeof AppScheduleRoute
   '/_app/sessions': typeof AppSessionsRoute
   '/_app/settings': typeof AppSettingsRoute
+  '/coach/money': typeof CoachMoneyRoute
+  '/coach/schedule': typeof CoachScheduleRoute
+  '/coach/settings': typeof CoachSettingsRoute
   '/invite/$code': typeof InviteCodeRoute
   '/join/$code': typeof JoinCodeRoute
+  '/coach/': typeof CoachIndexRoute
+  '/coach/players/$logId': typeof CoachPlayersLogIdRoute
+  '/coach/report/$logId': typeof CoachReportLogIdRoute
+  '/coach/players/': typeof CoachPlayersIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/coach'
     | '/demo'
     | '/login'
     | '/reset-password'
@@ -161,12 +242,20 @@ export interface FileRouteTypes {
     | '/overview'
     | '/plan'
     | '/players'
+    | '/progress'
     | '/report'
     | '/schedule'
     | '/sessions'
     | '/settings'
+    | '/coach/money'
+    | '/coach/schedule'
+    | '/coach/settings'
     | '/invite/$code'
     | '/join/$code'
+    | '/coach/'
+    | '/coach/players/$logId'
+    | '/coach/report/$logId'
+    | '/coach/players/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -177,16 +266,25 @@ export interface FileRouteTypes {
     | '/overview'
     | '/plan'
     | '/players'
+    | '/progress'
     | '/report'
     | '/schedule'
     | '/sessions'
     | '/settings'
+    | '/coach/money'
+    | '/coach/schedule'
+    | '/coach/settings'
     | '/invite/$code'
     | '/join/$code'
+    | '/coach'
+    | '/coach/players/$logId'
+    | '/coach/report/$logId'
+    | '/coach/players'
   id:
     | '__root__'
     | '/'
     | '/_app'
+    | '/coach'
     | '/demo'
     | '/login'
     | '/reset-password'
@@ -194,17 +292,26 @@ export interface FileRouteTypes {
     | '/_app/overview'
     | '/_app/plan'
     | '/_app/players'
+    | '/_app/progress'
     | '/_app/report'
     | '/_app/schedule'
     | '/_app/sessions'
     | '/_app/settings'
+    | '/coach/money'
+    | '/coach/schedule'
+    | '/coach/settings'
     | '/invite/$code'
     | '/join/$code'
+    | '/coach/'
+    | '/coach/players/$logId'
+    | '/coach/report/$logId'
+    | '/coach/players/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AppRoute: typeof AppRouteWithChildren
+  CoachRoute: typeof CoachRouteWithChildren
   DemoRoute: typeof DemoRoute
   LoginRoute: typeof LoginRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
@@ -227,6 +334,13 @@ declare module '@tanstack/react-router' {
       path: ''
       fullPath: '/'
       preLoaderRoute: typeof AppRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/coach': {
+      id: '/coach'
+      path: '/coach'
+      fullPath: '/coach'
+      preLoaderRoute: typeof CoachRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/demo': {
@@ -278,6 +392,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppPlayersRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/progress': {
+      id: '/_app/progress'
+      path: '/progress'
+      fullPath: '/progress'
+      preLoaderRoute: typeof AppProgressRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/report': {
       id: '/_app/report'
       path: '/report'
@@ -306,6 +427,34 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppSettingsRouteImport
       parentRoute: typeof AppRoute
     }
+    '/coach/': {
+      id: '/coach/'
+      path: '/'
+      fullPath: '/coach/'
+      preLoaderRoute: typeof CoachIndexRouteImport
+      parentRoute: typeof CoachRoute
+    }
+    '/coach/money': {
+      id: '/coach/money'
+      path: '/money'
+      fullPath: '/coach/money'
+      preLoaderRoute: typeof CoachMoneyRouteImport
+      parentRoute: typeof CoachRoute
+    }
+    '/coach/schedule': {
+      id: '/coach/schedule'
+      path: '/schedule'
+      fullPath: '/coach/schedule'
+      preLoaderRoute: typeof CoachScheduleRouteImport
+      parentRoute: typeof CoachRoute
+    }
+    '/coach/settings': {
+      id: '/coach/settings'
+      path: '/settings'
+      fullPath: '/coach/settings'
+      preLoaderRoute: typeof CoachSettingsRouteImport
+      parentRoute: typeof CoachRoute
+    }
     '/invite/$code': {
       id: '/invite/$code'
       path: '/invite/$code'
@@ -320,6 +469,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof JoinCodeRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/coach/players/': {
+      id: '/coach/players/'
+      path: '/players'
+      fullPath: '/coach/players/'
+      preLoaderRoute: typeof CoachPlayersIndexRouteImport
+      parentRoute: typeof CoachRoute
+    }
+    '/coach/players/$logId': {
+      id: '/coach/players/$logId'
+      path: '/players/$logId'
+      fullPath: '/coach/players/$logId'
+      preLoaderRoute: typeof CoachPlayersLogIdRouteImport
+      parentRoute: typeof CoachRoute
+    }
+    '/coach/report/$logId': {
+      id: '/coach/report/$logId'
+      path: '/report/$logId'
+      fullPath: '/coach/report/$logId'
+      preLoaderRoute: typeof CoachReportLogIdRouteImport
+      parentRoute: typeof CoachRoute
+    }
   }
 }
 
@@ -327,6 +497,7 @@ interface AppRouteChildren {
   AppOverviewRoute: typeof AppOverviewRoute
   AppPlanRoute: typeof AppPlanRoute
   AppPlayersRoute: typeof AppPlayersRoute
+  AppProgressRoute: typeof AppProgressRoute
   AppReportRoute: typeof AppReportRoute
   AppScheduleRoute: typeof AppScheduleRoute
   AppSessionsRoute: typeof AppSessionsRoute
@@ -337,6 +508,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppOverviewRoute: AppOverviewRoute,
   AppPlanRoute: AppPlanRoute,
   AppPlayersRoute: AppPlayersRoute,
+  AppProgressRoute: AppProgressRoute,
   AppReportRoute: AppReportRoute,
   AppScheduleRoute: AppScheduleRoute,
   AppSessionsRoute: AppSessionsRoute,
@@ -345,9 +517,32 @@ const AppRouteChildren: AppRouteChildren = {
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
 
+interface CoachRouteChildren {
+  CoachMoneyRoute: typeof CoachMoneyRoute
+  CoachScheduleRoute: typeof CoachScheduleRoute
+  CoachSettingsRoute: typeof CoachSettingsRoute
+  CoachIndexRoute: typeof CoachIndexRoute
+  CoachPlayersLogIdRoute: typeof CoachPlayersLogIdRoute
+  CoachReportLogIdRoute: typeof CoachReportLogIdRoute
+  CoachPlayersIndexRoute: typeof CoachPlayersIndexRoute
+}
+
+const CoachRouteChildren: CoachRouteChildren = {
+  CoachMoneyRoute: CoachMoneyRoute,
+  CoachScheduleRoute: CoachScheduleRoute,
+  CoachSettingsRoute: CoachSettingsRoute,
+  CoachIndexRoute: CoachIndexRoute,
+  CoachPlayersLogIdRoute: CoachPlayersLogIdRoute,
+  CoachReportLogIdRoute: CoachReportLogIdRoute,
+  CoachPlayersIndexRoute: CoachPlayersIndexRoute,
+}
+
+const CoachRouteWithChildren = CoachRoute._addFileChildren(CoachRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AppRoute: AppRouteWithChildren,
+  CoachRoute: CoachRouteWithChildren,
   DemoRoute: DemoRoute,
   LoginRoute: LoginRoute,
   ResetPasswordRoute: ResetPasswordRoute,

@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { supabase } from '@/lib/supabase'
+import { Wordmark } from '@/components/wordmark'
 
 export const Route = createFileRoute('/reset-password')({ component: ResetPassword })
 
@@ -39,7 +40,7 @@ function ResetPassword() {
   return (
     <main className="mx-auto flex min-h-svh w-full max-w-sm flex-col justify-center gap-8 px-4 py-10">
       <header>
-        <Link to="/" className="text-sm font-medium tracking-wide text-primary uppercase">Baseline</Link>
+        <Link to="/"><Wordmark className="text-3xl" /></Link>
         <h1 className="mt-1 text-5xl leading-none">Choose a new password</h1>
       </header>
       {ready === null && <p className="text-muted-foreground">Checking your link…</p>}

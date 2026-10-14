@@ -176,6 +176,13 @@ export function useScheduleActions(logId: string) {
   }
 }
 
+/** The signed-in person's profile. */
+export const profileQuery = (userId: string) =>
+  queryOptions({
+    queryKey: ['profile', userId],
+    queryFn: async () => check(await supabase.from('profiles').select('display_name').eq('id', userId).single()) as { display_name: string },
+  })
+
 /* ---------------------------------------------------------- coach invites */
 
 export const coachInviteQuery = () =>
@@ -267,6 +274,28 @@ export function useMoneyActions(logId: string) {
       onSuccess: refresh,
     }),
   }
+}
+
+/** Confirms payments players said they made. Works across players, so the coach's home can use it. */
+export function useConfirmPayments() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async (ids: string[]) => check(await supabase.from('payments').update({ pending: false }).in('id', ids)),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['money'] }),
+  })
+}
+
+/** A coach note for any of their players. */
+export function useAddNote() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async (v: { logId: string; note: string }) =>
+      check(await supabase.from('coach_notes').insert({ log_id: v.logId, note: v.note })),
+    onSuccess: (_d, v) => {
+      void qc.invalidateQueries({ queryKey: ['coach_notes', v.logId] })
+      void qc.invalidateQueries({ queryKey: ['players'] })
+    },
+  })
 }
 
 /** The player taps "Got it" on a coach's note. The database only lets the player do this. */

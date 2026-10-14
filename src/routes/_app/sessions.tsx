@@ -89,7 +89,7 @@ function Sessions() {
 
   return (
     <>
-      <PageHeader title="Sessions">
+      <PageHeader title="Log">
         {isPlayer && view === 'practice' && <Button onClick={() => setEditor({ open: true, session: null })}>Log session</Button>}
       </PageHeader>
       <div role="tablist" aria-label="Sessions" className="mb-6 inline-flex rounded-lg border p-0.5">

@@ -1,328 +1,74 @@
-import { createFileRoute, Link } from '@tanstack/react-router'
-import { addDays, differenceInCalendarDays, format, parseISO } from 'date-fns'
-import { AlertCircle, MessageSquarePlus } from 'lucide-react'
-import { useEffect, useMemo, useState } from 'react'
-import { toast } from 'sonner'
-import { MoneySummary, PaymentLine, PaymentsBlock } from '@/components/payments'
-import { DayGroups, OccurrenceView, PrepView } from '@/components/schedule'
-import { RatingChart } from '@/components/rating-chart'
-import { ReportView } from '@/components/report-view'
-import { PageHeader, RatingPips, Section } from '@/components/ui-bits'
-import { Button, buttonVariants } from '@/components/ui/button'
+import { Link, createFileRoute, useNavigate } from '@tanstack/react-router'
+import { MessageCircle } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { z } from 'zod'
+import { MoneyTab } from '@/components/demo/money-tab'
+import { NoteBox } from '@/components/demo/note-box'
+import { PlayerPage, type Seg } from '@/components/demo/player-page'
+import { PlayersTab } from '@/components/demo/players-tab'
+import { ScheduleTab } from '@/components/demo/schedule-tab'
+import { DemoShell } from '@/components/demo/shell'
+import { TodayTab } from '@/components/demo/today'
+import { buttonVariants } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Textarea } from '@/components/ui/textarea'
-import { attentionFor, dayLabel, endsAt, isoDate, occurrences, timeRange, type Occurrence } from '@/domain/schedule'
-import { heldSessions, naira, standing } from '@/domain/payments'
-import { buildReport } from '@/domain/report'
-import { agoLabel, recentAverage, sortSessions } from '@/domain/stats'
-import type { CoachNote, PlayerSummary, ScheduleOverride } from '@/domain/types'
-import { buildDemo, demoNow } from '@/lib/demo-data'
+import { Input } from '@/components/ui/input'
+import { playerInviteMessage, whatsappTextUrl } from '@/lib/invite'
+import { useDemo } from '@/lib/demo-state'
 import { cn } from '@/lib/utils'
 
-export const Route = createFileRoute('/demo')({ component: Demo })
+export const Route = createFileRoute('/demo')({
+  validateSearch: z.object({
+    tab: z.enum(['today', 'players', 'money', 'schedule']).optional(),
+    player: z.string().optional(),
+    seg: z.enum(['summary', 'sessions', 'money', 'notes']).optional(),
+  }),
+  component: Demo,
+})
 
 function Demo() {
-  const data = useMemo(buildDemo, [])
-  const now = useMemo(demoNow, [])
-  const [overrides, setOverrides] = useState<ScheduleOverride[]>([])
-  const [extraNotes, setExtraNotes] = useState<CoachNote[]>([])
-  const [openId, setOpenId] = useState<string | null>(null)
+  const d = useDemo()
+  const { tab = 'today', player, seg = 'summary' } = Route.useSearch()
+  const navigate = useNavigate()
   const [noteFor, setNoteFor] = useState<string | null>(null)
-  const [reportFor, setReportFor] = useState<string | null>(null)
-  const [payments, setPayments] = useState(data.payments)
+  const [inviting, setInviting] = useState(false)
 
   useEffect(() => { document.title = 'Coach demo · Baseline' }, [])
 
-  const notes = [...extraNotes, ...data.notes]
-  const nameOf = (id: string) => data.players.find((p) => p.id === id)?.name ?? ''
-
-  const summaries: PlayerSummary[] = data.players.map((p) => {
-    const mine = sortSessions(data.sessions.filter((s) => s.log_id === p.id))
-    const lastNote = notes.filter((n) => n.log_id === p.id).map((n) => n.created_at).sort().at(-1) ?? null
-    return {
-      log_id: p.id, log_name: p.name, player_id: p.id, player_name: p.name,
-      session_count: mine.length, last_session: mine[0]?.session_date ?? null,
-      avg_recent: recentAverage(mine, 5) ? Number(recentAverage(mine, 5)!.toFixed(1)) : null,
-      last_note: lastNote,
-      unseen_notes: notes.filter((n) => n.log_id === p.id && !n.acknowledged_at).length,
-    }
-  })
-
-  // Sessions used come from the schedule, so cancelling one below changes the count.
-  const money = new Map(data.players.map((p) => {
-    const a = data.arrangements.find((x) => x.log_id === p.id)!
-    const mine = payments.filter((x) => x.log_id === p.id)
-    const own = data.slots.filter((x) => x.log_id === p.id)
-    return [p.id, { a, mine, s: standing([a], mine, (x) => heldSessions(own, overrides, x.start_date, now, x.ended_on)) }] as const
-  }))
-  const recentFor = (id: string) => {
-    const a = money.get(id)!.a
-    const days = Math.max(1, differenceInCalendarDays(now, parseISO(a.start_date)) + 1)
-    return occurrences(data.slots.filter((x) => x.log_id === id), overrides, parseISO(a.start_date), days)
-      .filter((o) => endsAt(o) < now).sort((x, y) => y.date.localeCompare(x.date) || y.start.localeCompare(x.start)).slice(0, 4)
-  }
-
-  const all = occurrences(data.slots, overrides, addDays(now, -7), 15)
-  const today = isoDate(now)
-  const upcoming = all.filter((o) => endsAt(o) >= now)
-  const todays = upcoming.filter((o) => o.date === today)
-  const later = upcoming.filter((o) => o.date > today && o.date <= isoDate(addDays(now, 7)))
-  const past = all.filter((o) => endsAt(o) < now)
-  const rows = summaries
-    .map((p) => ({ p, reasons: attentionFor(p, past, 7, now) }))
-    .sort((a, b) => b.reasons.length - a.reasons.length || a.p.player_name.localeCompare(b.p.player_name))
-  const needLook = rows.filter((r) => r.reasons.length).length
-
-  const setOverride = (o: Occurrence, v: Pick<ScheduleOverride, 'new_date' | 'new_start' | 'new_end'>) =>
-    setOverrides((cur) => [
-      ...cur.filter((x) => !(x.slot_id === o.slotId && x.on_date === o.baseDate)),
-      { id: `${o.key}`, log_id: o.logId, slot_id: o.slotId, on_date: o.baseDate, ...v },
-    ])
-
-  const row = (o: Occurrence) => {
-    const sessions = sortSessions(data.sessions.filter((s) => s.log_id === o.logId))
-    return (
-      <OccurrenceView occ={o} title={nameOf(o.logId)} onOpenLog={() => setOpenId(o.logId)}
-        prep={<PrepView latest={sessions[0]}
-          lastNote={notes.filter((n) => n.log_id === o.logId).sort((a, b) => b.created_at.localeCompare(a.created_at))[0]?.note}
-          openGoals={data.goals.filter((g) => g.log_id === o.logId && !g.done).slice(0, 3).map((g) => g.text)} />}
-        actions={{
-          cancel: () => { setOverride(o, { new_date: null, new_start: null, new_end: null }); toast.success('Session cancelled for this date') },
-          restore: () => setOverrides((cur) => cur.filter((x) => x.id !== o.overrideId)),
-          move: (v) => { setOverride(o, { new_date: v.date, new_start: v.start, new_end: v.end }); toast.success('Session moved') },
-        }} />
-    )
-  }
-
-  const detail = openId ? data.players.find((p) => p.id === openId) : undefined
-  const detailSessions = sortSessions(data.sessions.filter((s) => s.log_id === openId))
-  const reportPlayer = data.players.find((p) => p.id === reportFor)
-  const report = useMemo(() => reportFor ? buildReport({
-    sessions: data.sessions.filter((s) => s.log_id === reportFor),
-    goals: data.goals.filter((g) => g.log_id === reportFor),
-    drills: [],
-    notes: data.notes.filter((n) => n.log_id === reportFor),
-    matches: data.matches.filter((m) => m.log_id === reportFor),
-  }, 'quarter') : null, [reportFor, data])
-  const detailNext = upcoming.find((o) => o.logId === openId && !o.cancelled)
-  const detailNotes = notes.filter((n) => n.log_id === openId).sort((a, b) => b.created_at.localeCompare(a.created_at))
+  const openPlayer = (id: string, s?: Seg) => void navigate({ to: '/demo', search: { tab: 'players', player: id, seg: s } })
+  const askNote = (id: string) => setNoteFor(id)
+  const link = `${typeof window === 'undefined' ? '' : window.location.origin}/invite/your-link`
 
   return (
-    <div className="min-h-svh">
-      <div className="sticky top-0 z-30 border-b bg-primary text-primary-foreground">
-        <div className="mx-auto flex max-w-3xl flex-wrap items-center gap-x-4 gap-y-1 px-4 py-2.5 text-sm">
-          <span className="font-medium">Sample data. Nothing here is saved.</span>
-          <span className="ml-auto flex items-center gap-3">
-            <Link to="/" className="underline-offset-4 hover:underline">Back to site</Link>
-            <Link to="/login" search={{ mode: 'up' }} className={cn(buttonVariants({ size: 'xs', variant: 'secondary' }))}>Create your account</Link>
-          </span>
-        </div>
+    <DemoShell tab={player ? 'players' : tab}
+      onAddNote={() => setNoteFor(player ?? d.rows.find((r) => r.reasons.length)?.p.log_id ?? d.data.players[0].id)}
+      onInvite={() => setInviting(true)}>
+      {player ? <PlayerPage d={d} id={player} seg={seg} askNote={askNote} setSeg={(s) => void navigate({ to: '/demo', search: { tab: 'players', player, seg: s }, replace: true })} />
+        : tab === 'players' ? <PlayersTab d={d} openPlayer={openPlayer} onInvite={() => setInviting(true)} />
+          : tab === 'money' ? <MoneyTab d={d} openPlayer={openPlayer} />
+            : tab === 'schedule' ? <ScheduleTab d={d} openPlayer={openPlayer} />
+              : <TodayTab d={d} openPlayer={openPlayer} askNote={askNote} />}
+
+      <div className="mt-10 rounded-lg bg-muted/60 p-5 text-center">
+        <p className="font-display text-2xl">Like what you see?</p>
+        <p className="mx-auto mt-1 max-w-sm text-sm text-muted-foreground">Create an account, send your invite link to a player, and this is your real week.</p>
+        <Link to="/login" search={{ mode: 'up', role: 'coach' }} className={cn(buttonVariants(), 'mt-4')}>Create your account</Link>
       </div>
 
-      <header className="border-b">
-        <div className="mx-auto flex h-14 max-w-3xl items-center gap-3 px-4">
-          <Link to="/" className="font-display text-2xl leading-none">Baseline</Link>
-          <span className="text-sm text-muted-foreground">Coach view</span>
-          <Button size="sm" className="ml-auto" onClick={() => setNoteFor(rows.find((r) => r.reasons.length)?.p.log_id ?? data.players[0].id)}>
-            <MessageSquarePlus /> Add note
-          </Button>
-        </div>
-      </header>
+      <NoteBox players={d.data.players} playerId={noteFor} onClose={() => setNoteFor(null)}
+        onSave={(id, note) => { d.addNote(id, note); setNoteFor(null) }} />
 
-      <main className="mx-auto max-w-3xl px-4 py-8 pb-24">
-        <PageHeader eyebrow={`${format(now, 'EEEE d MMMM')} · ${data.players.length} players${needLook ? ` · ${needLook} to look at` : ''}`} title="Players" />
-
-        <div className="mb-8 rounded-lg border border-dashed bg-accent/40 p-4 text-sm">
-          <p className="font-medium">Try it. This is a real coach screen with four sample players.</p>
-          <ol className="mt-2 list-decimal space-y-1 pl-5 text-muted-foreground">
-            <li>Tap Chidi’s session today to see what he wrote last time.</li>
-            <li>Tap <em>Add note</em> and write one for Ife. Her red flag clears.</li>
-            <li>Move or cancel a session, then open a player to read their log.</li>
-            <li>Open Tunde, confirm the ₦6,000 he says he paid, and watch what he owes drop. Open Amaka to record a payment.</li>
-          </ol>
-        </div>
-
-        <MoneySummary standings={[...money.values()].map((m) => m.s)} />
-
-        <Section title="Today" className="border-t-0 pt-0">
-          {todays.length ? <DayGroups items={todays} render={row} skipToday /> : <p className="text-sm text-muted-foreground">Nothing else on today.</p>}
-        </Section>
-
-        {later.length > 0 && (
-          <Section title="Rest of the week" hint="Tap a time for what each player last wrote, plus cancel and move.">
-            <DayGroups items={later} render={row} />
-          </Section>
-        )}
-
-        <Section title="Your players">
-          <ul className="divide-y rounded-lg border">
-            {rows.map(({ p, reasons }) => (
-              <li key={p.log_id}>
-                <button type="button" onClick={() => setOpenId(p.log_id)}
-                  className="flex w-full items-center gap-4 px-4 py-3.5 text-left transition-colors hover:bg-accent/50 focus-visible:bg-accent/50">
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate font-medium">{p.player_name}</span>
-                    <span className="mt-0.5 block text-sm text-muted-foreground">
-                      {p.last_session ? `Last session ${agoLabel(p.last_session).toLowerCase()}` : 'No sessions logged yet'}
-                    </span>
-                    {p.unseen_notes > 0 && (
-                      <span className="mt-0.5 block text-sm text-muted-foreground">
-                        {p.unseen_notes === 1 ? 'Your last note has not been seen yet' : `${p.unseen_notes} notes not seen yet`}
-                      </span>
-                    )}
-                    {money.get(p.log_id) && <PaymentLine s={money.get(p.log_id)!.s} />}
-                    {reasons.map((r) => (
-                      <span key={r} className="mt-0.5 flex items-center gap-1 text-sm text-destructive">
-                        <AlertCircle className="size-3.5 shrink-0" aria-hidden /> {r}
-                      </span>
-                    ))}
-                  </span>
-                  <span className="tabular text-right text-sm">
-                    <span className="font-display text-2xl leading-none">{p.avg_recent ?? '–'}</span>
-                    <span className="block text-xs text-muted-foreground">avg feel</span>
-                  </span>
-                  <span className="tabular w-14 text-right text-sm">
-                    <span className="font-display text-2xl leading-none">{p.session_count}</span>
-                    <span className="block text-xs text-muted-foreground">sessions</span>
-                  </span>
-                </button>
-              </li>
-            ))}
-          </ul>
-        </Section>
-
-        <div className="rounded-lg bg-muted/60 p-5 text-center">
-          <p className="font-display text-2xl">Like what you see?</p>
-          <p className="mx-auto mt-1 max-w-sm text-sm text-muted-foreground">Create an account, ask a player for their coach link, and this is your real week.</p>
-          <Link to="/login" search={{ mode: 'up' }} className={cn(buttonVariants(), 'mt-4')}>Create your account</Link>
-        </div>
-      </main>
-
-      <Dialog open={Boolean(detail)} onOpenChange={(o) => !o && setOpenId(null)}>
-        <DialogContent className="max-h-[92svh] overflow-y-auto sm:max-w-xl">
+      <Dialog open={inviting} onOpenChange={setInviting}>
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle className="font-display text-3xl font-normal">{detail?.name}</DialogTitle>
-            <DialogDescription>Their log, read only. You can leave notes and suggest goals.</DialogDescription>
+            <DialogTitle className="font-display text-3xl font-normal">Invite a player</DialogTitle>
+            <DialogDescription>In the real app this is your own link. A player who opens it signs up and gets a log with you as their coach.</DialogDescription>
           </DialogHeader>
-          <div className="flex flex-wrap items-end justify-between gap-x-8 gap-y-4 rounded-xl border bg-card p-4">
-            <div>
-              <p className="text-xs tracking-wide text-muted-foreground uppercase">Next session</p>
-              {detailNext ? (
-                <>
-                  <p className="mt-1 font-display text-3xl leading-none">{dayLabel(detailNext.date)}</p>
-                  <p className="tabular mt-1.5 text-sm">
-                    {timeRange(detailNext.start, detailNext.end)}
-                    {detailNext.place && <span className="text-muted-foreground"> · {detailNext.place}</span>}
-                  </p>
-                </>
-              ) : <p className="mt-1 font-display text-2xl leading-none">Nothing scheduled</p>}
-            </div>
-            <div>
-              <p className="text-xs tracking-wide text-muted-foreground uppercase">Last session</p>
-              {detailSessions[0] ? (
-                <p className="mt-1.5 flex items-center gap-2.5 text-sm">
-                  {agoLabel(detailSessions[0].session_date)} <RatingPips value={detailSessions[0].rating} />
-                </p>
-              ) : <p className="mt-1.5 text-sm text-muted-foreground">Nothing logged yet</p>}
-            </div>
-          </div>
-          <RatingChart newestFirst={detailSessions} />
-          <div>
-            <h3 className="mb-2 text-xl">Recent sessions</h3>
-            <ul className="divide-y">
-              {detailSessions.slice(0, 5).map((s) => (
-                <li key={s.id} className="py-2.5 text-sm">
-                  <div className="flex items-center gap-3">
-                    <span className="tabular w-16 shrink-0 text-muted-foreground">{format(parseISO(s.session_date), 'd MMM')}</span>
-                    <span className="flex-1 font-medium">{s.focus.join(', ')}</span>
-                    <RatingPips value={s.rating} />
-                  </div>
-                  {s.fix && <p className="mt-1 pl-[4.75rem] text-muted-foreground">Work on next: {s.fix}</p>}
-                </li>
-              ))}
-            </ul>
-          </div>
-          {detail && money.get(detail.id) && (
-            <div>
-              <h3 className="mb-2 text-xl">Payments</h3>
-              <PaymentsBlock name={detail.name} s={money.get(detail.id)!.s} payments={money.get(detail.id)!.mine} canManage
-                recent={recentFor(detail.id)}
-                onToggleSession={(o) => o.cancelled
-                  ? setOverrides((cur) => cur.filter((x) => x.id !== o.overrideId))
-                  : setOverride(o, { new_date: null, new_start: null, new_end: null })}
-                onConfirm={(id) => { setPayments((cur) => cur.map((x) => x.id === id ? { ...x, pending: false } : x)); toast.success('Payment confirmed') }}
-                onRemove={(id) => setPayments((cur) => cur.filter((x) => x.id !== id))}
-                onRecord={(amount) => {
-                  setPayments((cur) => [...cur, { id: `new-${cur.length}`, log_id: detail.id, amount, paid_on: isoDate(now), pending: false }])
-                  toast.success(`${naira(amount)} recorded for ${detail.name}`)
-                }} />
-            </div>
-          )}
-          <div>
-            <h3 className="mb-2 text-xl">Your notes</h3>
-            <ul className="flex flex-col gap-3">
-              {detailNotes.map((n) => (
-                <li key={n.id} className="border-l-2 border-primary pl-3 text-sm">
-                  <span className="text-xs tracking-wide text-muted-foreground uppercase">{format(parseISO(n.created_at), 'd MMM')}</span>
-                  <p className="mt-0.5">{n.note}</p>
-                  <p className="mt-1 text-xs text-muted-foreground">{n.acknowledged_at ? `Seen ${format(parseISO(n.acknowledged_at), 'd MMM')}` : 'Not seen yet'}</p>
-                </li>
-              ))}
-            </ul>
-            <div className="mt-4 flex flex-wrap gap-2">
-              <Button size="sm" variant="outline" onClick={() => { setNoteFor(openId); }}>Add a note</Button>
-              <Button size="sm" variant="outline" onClick={() => setReportFor(openId)}>See progress report</Button>
-            </div>
-          </div>
+          <Input readOnly value={link} onFocus={(e) => e.currentTarget.select()} aria-label="Sample invite link" />
+          <a href={whatsappTextUrl(playerInviteMessage('your coach', link))} target="_blank" rel="noreferrer" className={buttonVariants({ size: 'lg' })}>
+            <MessageCircle /> Send on WhatsApp
+          </a>
         </DialogContent>
       </Dialog>
-
-      <Dialog open={Boolean(reportPlayer)} onOpenChange={(o) => !o && setReportFor(null)}>
-        <DialogContent className="max-h-[92svh] overflow-y-auto sm:max-w-2xl">
-          <DialogHeader>
-            <DialogTitle className="sr-only">Progress report for {reportPlayer?.name}</DialogTitle>
-            <DialogDescription>A one-page summary you can print or send to a player or a parent.</DialogDescription>
-          </DialogHeader>
-          {reportPlayer && report && <ReportView playerName={reportPlayer.name} report={report} />}
-        </DialogContent>
-      </Dialog>
-
-      <NoteBox players={data.players} playerId={noteFor} onClose={() => setNoteFor(null)} onSave={(logId, note) => {
-        setExtraNotes((cur) => [{ id: `new-${cur.length}`, log_id: logId, session_id: null, note, author_id: 'coach', created_at: new Date().toISOString(), acknowledged_at: null }, ...cur])
-        toast.success(`Note added for ${nameOf(logId)}`)
-        setNoteFor(null)
-      }} />
-    </div>
-  )
-}
-
-function NoteBox({ players, playerId, onClose, onSave }: {
-  players: { id: string; name: string }[]
-  playerId: string | null
-  onClose: () => void
-  onSave: (logId: string, note: string) => void
-}) {
-  const [who, setWho] = useState(playerId)
-  const [text, setText] = useState('')
-  useEffect(() => { setWho(playerId); setText('') }, [playerId])
-  return (
-    <Dialog open={Boolean(playerId)} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle className="font-display text-3xl font-normal">Add a note</DialogTitle>
-          <DialogDescription>The player sees it on their overview straight away.</DialogDescription>
-        </DialogHeader>
-        <div className="flex flex-wrap gap-1.5" role="radiogroup" aria-label="Player">
-          {players.map((p) => (
-            <button key={p.id} type="button" role="radio" aria-checked={who === p.id} onClick={() => setWho(p.id)}
-              className={cn('rounded-full border px-3.5 py-2 text-sm md:px-3 md:py-1 transition-colors', who === p.id ? 'border-primary bg-primary text-primary-foreground' : 'hover:bg-accent')}>
-              {p.name}
-            </button>
-          ))}
-        </div>
-        <Textarea aria-label="Note" placeholder="What should they know or work on?" rows={3} maxLength={2000} value={text} onChange={(e) => setText(e.target.value)} />
-        <Button disabled={!who || !text.trim()} onClick={() => who && onSave(who, text.trim())}>Add note</Button>
-      </DialogContent>
-    </Dialog>
+    </DemoShell>
   )
 }

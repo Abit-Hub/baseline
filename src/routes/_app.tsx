@@ -1,6 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
 import { Outlet, createFileRoute, redirect } from '@tanstack/react-router'
-import { useAtomValue } from 'jotai'
 import { AppShell } from '@/components/app-shell'
 import { LogProvider } from '@/components/log-context'
 import { Onboarding } from '@/components/onboarding'
@@ -8,7 +7,6 @@ import { ListSkeleton, Skeleton } from '@/components/ui-bits'
 import { logsQuery, myMembershipsQuery } from '@/data/queries'
 import type { Role } from '@/domain/types'
 import { supabase } from '@/lib/supabase'
-import { activeLogIdAtom } from '@/state/atoms'
 
 export const Route = createFileRoute('/_app')({
   beforeLoad: async ({ location }) => {
@@ -23,7 +21,6 @@ function AppLayout() {
   const { user } = Route.useRouteContext()
   const logsQ = useQuery(logsQuery())
   const memberships = useQuery(myMembershipsQuery(user.id))
-  const storedId = useAtomValue(activeLogIdAtom)
 
   const error = logsQ.error ?? memberships.error
   if (error) return <p className="p-6 text-destructive">Could not load your log: {error.message}</p>
@@ -36,11 +33,10 @@ function AppLayout() {
       <ListSkeleton rows={3} />
     </div>
   )
-  if (!logs.length) return <Onboarding />
-
+  // This side of the app is the person's own training log. Coaches see their players in the coach view.
   const roles: Record<string, Role> = Object.fromEntries(mine.map((m) => [m.log_id, m.role]))
-  // Open the saved log, otherwise the person's own log, otherwise the first one.
-  const log = logs.find((l) => l.id === storedId) ?? logs.find((l) => roles[l.id] === 'player') ?? logs[0]
+  const log = logs.find((l) => roles[l.id] === 'player')
+  if (!log) return <Onboarding />
   return (
     <LogProvider log={log} logs={logs} roles={roles} user={user}>
       <AppShell>

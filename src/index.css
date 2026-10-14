@@ -193,6 +193,19 @@
   }
   .dark .marker::before { background: oklch(0.8 0.13 100 / 0.22); }
   .in-view .marker::before { animation: marker 0.9s cubic-bezier(0.5, 0, 0.2, 1) 0.9s forwards; }
+  /* Faint ruled paper at the top of every app page, fading out so it never sits behind reading text. */
+  .paper-top::before {
+    content: '';
+    position: absolute;
+    inset-inline: 0;
+    top: 0;
+    height: 22rem;
+    z-index: -1;
+    pointer-events: none;
+    background-image: repeating-linear-gradient(to bottom, transparent 0, transparent 35px, color-mix(in oklab, var(--primary) 7%, transparent) 35px, color-mix(in oklab, var(--primary) 7%, transparent) 36px);
+    mask-image: linear-gradient(to bottom, black, transparent);
+  }
+  .page-in { animation: page-in 0.35s cubic-bezier(0.2, 0.7, 0.2, 1) both; }
   .dots {
     background-image: radial-gradient(color-mix(in oklab, var(--foreground) 11%, transparent) 1px, transparent 1px);
     background-size: 22px 22px;
@@ -225,6 +238,7 @@
   91% { transform: translateY(-0.25em); animation-timing-function: cubic-bezier(0.55, 0, 1, 0.45); }
   100% { transform: translateY(0); }
 }
+@keyframes page-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
 @keyframes marker { to { transform: scaleX(1); } }
 @keyframes pop { from { opacity: 0; transform: scale(0.6); } to { opacity: 1; transform: none; } }
 @keyframes float { 0%, 100% { transform: translate3d(0, 0, 0); } 50% { transform: translate3d(0, -18px, 0); } }
@@ -248,6 +262,7 @@
 
 /* Printing always uses the light paper colours, even when the app is in dark mode. */
 @media print {
+  .paper-top::before { display: none; }
   :root, .dark {
     --background: oklch(1 0 0); --foreground: oklch(0.22 0.025 265);
     --card: oklch(1 0 0); --card-foreground: oklch(0.22 0.025 265);

@@ -10,8 +10,9 @@ import { ConfirmButton, PageHeader, Section } from '@/components/ui-bits'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { useLeaveLog, useRemoveCoach, useRotateInvite, useUpdateLog } from '@/data/queries'
+import { useLeaveLog, useRemoveCoach, useRotateInvite } from '@/data/queries'
 import { inviteMessage, whatsappUrl } from '@/lib/invite'
+import { setView } from '@/lib/role'
 import { supabase } from '@/lib/supabase'
 
 export const Route = createFileRoute('/_app/settings')({ component: Settings })
@@ -20,11 +21,9 @@ function Settings() {
   const { log, user, members, isPlayer, playerName } = useLog()
   const navigate = useNavigate()
   const qc = useQueryClient()
-  const updateLog = useUpdateLog(log.id)
   const rotate = useRotateInvite(log.id)
   const leave = useLeaveLog(log.id, user.id)
   const removeCoach = useRemoveCoach(log.id)
-  const [name, setName] = useState(log.name)
 
   const me = members.find((m) => m.user_id === user.id)
   const [myName, setMyName] = useState<string | null>(null)
@@ -44,7 +43,6 @@ function Settings() {
   const copy = (text: string) =>
     navigator.clipboard.writeText(text).then(() => toast.success('Link copied'), () => toast.error('Copy failed. Select the link and copy it by hand.'))
 
-  const sorted = [...members].sort((a, b) => Number(b.role === 'player') - Number(a.role === 'player'))
   let first = true
   const top = () => { const t = first; first = false; return t ? 'border-t-0 pt-0' : undefined }
 
@@ -80,49 +78,35 @@ function Settings() {
         </Section>
       )}
 
-      <Section title="People in this log" className={top()}
+      <Section title="Your coach" className={top()}
         hint={isPlayer ? 'Coaches can read your log and add notes. They cannot change your entries.' : `You are a coach in ${playerName}’s log.`}>
-        <ul className="divide-y">
-          {sorted.map((m) => (
-            <li key={m.user_id} className="flex items-center justify-between gap-3 py-2.5">
-              <span className="min-w-0 truncate">
-                {m.profiles?.display_name || 'Unnamed'}
-                {m.user_id === user.id && <span className="text-muted-foreground"> (you)</span>}
-              </span>
-              <span className="flex items-center gap-2">
-                <span className="rounded bg-muted px-2 py-0.5 text-xs capitalize">{m.role}</span>
-                {isPlayer && m.role === 'coach' && (
+        {members.some((m) => m.role === 'coach') ? (
+          <ul className="divide-y">
+            {members.filter((m) => m.role === 'coach').map((m) => (
+              <li key={m.user_id} className="flex items-center justify-between gap-3 py-2.5">
+                <span className="min-w-0 truncate">{m.profiles?.display_name || 'Unnamed'}{m.user_id === user.id && <span className="text-muted-foreground"> (you)</span>}</span>
+                {isPlayer && (
                   <ConfirmButton variant="ghost" size="xs" armedLabel="Tap again to remove"
                     onConfirm={() => removeCoach.mutate(m.user_id, { onSuccess: () => toast.success('Coach removed') })}>
                     Remove
                   </ConfirmButton>
                 )}
-              </span>
-            </li>
-          ))}
-        </ul>
-        <form className="mt-4 flex items-end gap-2"
+              </li>
+            ))}
+          </ul>
+        ) : <p className="text-sm text-muted-foreground">No coach yet. Send the invite link above.</p>}
+      </Section>
+
+      <Section title="Your name" hint="Your coach sees this on your page.">
+        <form className="flex items-end gap-2"
           onSubmit={(e) => { e.preventDefault(); const v = (myName ?? me?.profiles?.display_name ?? '').trim(); if (v) saveName.mutate(v) }}>
           <div className="flex flex-1 flex-col gap-1.5">
-            <Label htmlFor="my-name">Your name</Label>
+            <Label htmlFor="my-name" className="sr-only">Your name</Label>
             <Input id="my-name" maxLength={80} value={myName ?? me?.profiles?.display_name ?? ''} onChange={(e) => setMyName(e.target.value)} />
           </div>
           <Button type="submit" variant="outline">Save</Button>
         </form>
       </Section>
-
-      {isPlayer && (
-        <Section title="This log">
-          <form className="flex items-end gap-2"
-            onSubmit={(e) => { e.preventDefault(); if (name.trim() && name.trim() !== log.name) updateLog.mutate({ name: name.trim() }, { onSuccess: () => toast.success('Renamed') }) }}>
-            <div className="flex flex-1 flex-col gap-1.5">
-              <Label htmlFor="log-name">Name</Label>
-              <Input id="log-name" maxLength={80} value={name} onChange={(e) => setName(e.target.value)} />
-            </div>
-            <Button type="submit" variant="outline">Rename</Button>
-          </form>
-        </Section>
-      )}
 
       <Section title="Tell us what to fix" hint="Baseline is new. If something confuses you or you wish it did more, say so here. It goes straight to the person building it.">
         <FeedbackForm />
@@ -135,6 +119,9 @@ function Settings() {
       <Section title="Account" className="pb-0">
         <p className="mb-3 text-sm text-muted-foreground">Signed in as {user.email}</p>
         <div className="flex flex-wrap gap-2">
+          <Button variant="outline" onClick={() => void setView('coach').then(() => navigate({ to: '/start' }), (e: Error) => toast.error(e.message))}>
+            Switch to coach view
+          </Button>
           <Button variant="outline" onClick={() => void supabase.auth.signOut().then(() => { qc.clear(); return navigate({ to: '/login' }) })}>
             Sign out
           </Button>

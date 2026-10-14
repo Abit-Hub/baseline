@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { differenceInCalendarDays, format, parseISO } from 'date-fns'
 import { Wallet } from 'lucide-react'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { toast } from 'sonner'
 import { useLog } from '@/components/log-context'
 import { PaymentsBlock } from '@/components/payments'
@@ -18,7 +18,7 @@ import { useNow } from '@/lib/use-now'
 import { cn } from '@/lib/utils'
 
 /** The Payments block on Overview. The coach manages it. The player sees the same numbers. */
-export function PaymentsSection({ logId }: { logId: string }) {
+export function PaymentsSection({ logId, bare }: { logId: string; bare?: boolean }) {
   const { isCoach, playerName } = useLog()
   const money = useQuery(moneyQuery(logId))
   const sched = useQuery(scheduleQuery(logId))
@@ -50,9 +50,14 @@ export function PaymentsSection({ logId }: { logId: string }) {
   const busy = actions.addPayment.isPending || actions.confirm.isPending || setOverride.isPending || clearOverride.isPending
   const fail = (e: Error) => toast.error(e.message)
 
-  return (
-    <Section id="payments" title="Payments"
-      hint={isCoach ? `${playerName} sees these numbers too. Sessions are counted from the schedule.` : 'Your coach records payments here. Tap “I’ve paid” after you transfer.'}>
+  // A plain function, not a component, so the form state inside survives re-renders.
+  const wrap = (children: ReactNode) => bare
+    ? <div id="payments">{children}</div>
+    : <Section id="payments" title="Payments"
+      hint={isCoach ? `${playerName} sees these numbers too. Sessions are counted from the schedule.` : 'Your coach records payments here. Tap “I’ve paid” after you transfer.'}>{children}</Section>
+
+  return wrap(
+    <>
       {a ? (
         <PaymentsBlock name={playerName} s={s} payments={money.data.payments} recent={recent} canManage={isCoach} busy={busy}
           actions={isCoach && (
@@ -97,7 +102,7 @@ export function PaymentsSection({ logId }: { logId: string }) {
           )}
         </DialogContent>
       </Dialog>
-    </Section>
+    </>,
   )
 }
 

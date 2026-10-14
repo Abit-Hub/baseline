@@ -8,8 +8,9 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { supabase } from '@/lib/supabase'
+import { Wordmark } from '@/components/wordmark'
 
-const search = z.object({ redirect: z.string().optional(), mode: z.enum(['in', 'up']).optional() })
+const search = z.object({ redirect: z.string().optional(), mode: z.enum(['in', 'up']).optional(), role: z.enum(['coach', 'player']).optional() })
 
 export const Route = createFileRoute('/login')({
   validateSearch: search,
@@ -27,7 +28,8 @@ const schema = z.object({
 })
 
 function Login() {
-  const { redirect: back, mode: startMode } = Route.useSearch()
+  const { redirect: back, mode: startMode, role: startRole } = Route.useSearch()
+  const [role, setRole] = useState<'coach' | 'player'>(startRole ?? 'player')
   const [mode, setMode] = useState<'in' | 'up' | 'reset'>(startMode ?? 'in')
   const [notice, setNotice] = useState<string | null>(null)
   /** The email a new account was just made with. Shows the "check your email" message on the sign-in screen. */
@@ -44,7 +46,7 @@ function Login() {
         const { data, error } = await supabase.auth.signUp({
           email: value.email,
           password: value.password,
-          options: { data: { display_name: value.name.trim() } },
+          options: { data: { display_name: value.name.trim(), role } },
         })
         if (error) return void toast.error(error.message)
         if (!data.session) {
@@ -69,9 +71,9 @@ function Login() {
   return (
     <main className="mx-auto flex min-h-svh w-full max-w-sm flex-col justify-center gap-8 px-4 py-10">
       <header>
-        <Link to="/" className="text-sm font-medium tracking-wide text-primary uppercase">Baseline</Link>
+        <Link to="/"><Wordmark className="text-3xl" /></Link>
         <h1 className="mt-1 text-5xl leading-none">
-          {created ? 'Account created' : mode === 'in' ? 'Welcome back' : 'Start your log'}
+          {created ? 'Account created' : mode === 'in' ? 'Welcome back' : role === 'coach' ? 'Set up as a coach' : 'Start your log'}
         </h1>
         <p className="mt-3 text-muted-foreground">
           {created ? 'One more step: confirm your email, then sign in.' : 'A shared training notebook for you and your coach.'}
@@ -95,6 +97,22 @@ function Login() {
               If it is not in your inbox, look in spam.
             </p>
           </div>
+        )}
+        {mode === 'up' && (
+          <fieldset className="flex flex-col gap-1.5">
+            <legend className="mb-1 text-sm font-medium">I am a…</legend>
+            <div className="grid grid-cols-2 gap-1.5">
+              {([['player', 'Player'], ['coach', 'Coach']] as const).map(([r, label]) => (
+                <button key={r} type="button" aria-pressed={role === r} onClick={() => setRole(r)}
+                  className={`rounded-md border py-2.5 text-sm font-medium transition-colors ${role === r ? 'border-primary bg-primary text-primary-foreground' : 'hover:bg-accent'}`}>
+                  {label}
+                </button>
+              ))}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {role === 'coach' ? 'You will invite the players you train and see them all in one place.' : 'You will log your sessions and see notes from your coach.'}
+            </p>
+          </fieldset>
         )}
         {mode === 'up' && (
           <form.Field name="name">
@@ -190,7 +208,7 @@ function ForgotPassword({ onBack }: { onBack: () => void }) {
   return (
     <main className="mx-auto flex min-h-svh w-full max-w-sm flex-col justify-center gap-8 px-4 py-10">
       <header>
-        <Link to="/" className="text-sm font-medium tracking-wide text-primary uppercase">Baseline</Link>
+        <Link to="/"><Wordmark className="text-3xl" /></Link>
         <h1 className="mt-1 text-5xl leading-none">Reset your password</h1>
         <p className="mt-3 text-muted-foreground">Enter your email and we will send you a link to choose a new one.</p>
       </header>

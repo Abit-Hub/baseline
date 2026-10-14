@@ -14,8 +14,11 @@ export const sessionEditorAtom = atom<{ open: boolean; session: import('@/domain
   session: null,
 })
 
-/** The coach's quick note box, opened from the header. */
-export const noteDialogAtom = atom(false)
-
 /** Session prompts the player has chosen to skip, so they do not come back. */
 export const dismissedPromptsAtom = atomWithStorage<string[]>('baseline-dismissed-prompts', [])
+
+/** The coach's note box. Opened from any coach screen, optionally for one player. */
+export const coachNoteAtom = atom<{ open: boolean; logId: string | null }>({ open: false, logId: null })
+
+/** The coach's "invite a player" window. */
+export const inviteDialogAtom = atom(false)

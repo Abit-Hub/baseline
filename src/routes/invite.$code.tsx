@@ -7,6 +7,7 @@ import { coachInviteInfoQuery, useAcceptCoachInvite } from '@/data/queries'
 import { pendingInvite } from '@/lib/pending-invite'
 import { supabase } from '@/lib/supabase'
 import { activeLogIdAtom } from '@/state/atoms'
+import { Wordmark } from '@/components/wordmark'
 
 export const Route = createFileRoute('/invite/$code')({
   beforeLoad: async ({ params, location }) => {
@@ -32,7 +33,7 @@ function Invite() {
   return (
     <main className="mx-auto flex min-h-svh w-full max-w-md flex-col justify-center gap-8 px-4 py-10">
       <header>
-        <p className="text-sm font-medium tracking-wide text-primary uppercase">Baseline</p>
+        <Wordmark className="text-3xl" />
         {info.isPending ? (
           <h1 className="mt-1 text-5xl leading-none">One moment…</h1>
         ) : coach ? (

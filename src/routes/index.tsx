@@ -1,8 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { useEffect, useState } from 'react'
-import { FinalCta, Features, Footer, ForCoaches, Hero, HowItWorks, Nav, SkillsMarquee } from '@/components/landing/sections'
-import { Faq, Facts, Showcase } from '@/components/landing/showcase'
-import { ScrollProgress } from '@/components/landing/motion'
+import { Footer, ForCoaches, Hero, Nav, Steps } from '@/components/landing/sections'
 import { supabase } from '@/lib/supabase'
 
 export const Route = createFileRoute('/')({ component: Landing })
@@ -18,18 +16,11 @@ function Landing() {
 
   return (
     <div className="overflow-x-clip">
-      <ScrollProgress />
       <Nav signedIn={signedIn} />
       <main>
         <Hero signedIn={signedIn} />
-        <SkillsMarquee />
-        <Facts />
-        <HowItWorks />
-        <Showcase />
-        <Features />
+        <Steps />
         <ForCoaches signedIn={signedIn} />
-        <Faq />
-        <FinalCta signedIn={signedIn} />
       </main>
       <Footer signedIn={signedIn} />
     </div>

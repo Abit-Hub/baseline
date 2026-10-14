@@ -1,93 +1,83 @@
-import { Link, useLocation } from '@tanstack/react-router'
+import { useQuery } from '@tanstack/react-query'
+import { Link, useLocation, useNavigate } from '@tanstack/react-router'
 import { useAtom } from 'jotai'
-import { ArrowLeft, BookOpen, CalendarDays, ListChecks, MessageSquarePlus, NotebookPen, Plus, Settings, Users } from 'lucide-react'
+import { BookOpen, CalendarDays, NotebookPen, Plus, Settings, TrendingUp } from 'lucide-react'
 import type { ReactNode } from 'react'
+import { toast } from 'sonner'
 import { useLog } from '@/components/log-context'
-import { LogSwitcher } from '@/components/log-switcher'
-import { NoteDialog } from '@/components/note-dialog'
 import { OfflineBanner } from '@/components/offline-banner'
 import { SessionDialog } from '@/components/session-dialog'
 import { Button } from '@/components/ui/button'
-import { noteDialogAtom, sessionEditorAtom } from '@/state/atoms'
+import { profileQuery } from '@/data/queries'
+import { setView } from '@/lib/role'
+import { sessionEditorAtom } from '@/state/atoms'
+import { Wordmark } from '@/components/wordmark'
 
 const linkBase =
   'inline-flex items-center gap-2 rounded-md text-sm font-medium text-muted-foreground transition-colors hover:text-foreground'
 const linkActive = { className: 'bg-accent text-accent-foreground hover:text-accent-foreground' }
 
-export function AppShell({ children }: { children: ReactNode }) {
-  const { log, isPlayer, isCoach, coachesAnyone, playerName } = useLog()
-  const path = useLocation({ select: (l) => l.pathname })
-  const [, setEditor] = useAtom(sessionEditorAtom)
-  const [, setNoteOpen] = useAtom(noteDialogAtom)
+const NAV = [
+  { to: '/overview', label: 'Home', Icon: BookOpen, exact: true },
+  { to: '/sessions', label: 'Log', Icon: NotebookPen, exact: false },
+  { to: '/schedule', label: 'Schedule', Icon: CalendarDays, exact: false },
+  { to: '/progress', label: 'Progress', Icon: TrendingUp, exact: false },
+] as const
 
-  const nav = [
-    ...(coachesAnyone ? [{ to: '/players', label: 'Players', Icon: Users, exact: false }] : []),
-    { to: '/overview', label: 'Overview', Icon: BookOpen, exact: true },
-    { to: '/sessions', label: 'Sessions', Icon: NotebookPen, exact: false },
-    { to: '/schedule', label: 'Schedule', Icon: CalendarDays, exact: false },
-    { to: '/plan', label: 'Plan', Icon: ListChecks, exact: false },
-    { to: '/settings', label: 'Settings', Icon: Settings, exact: false },
-  ] as const
+/** The player's frame: four tabs, one main action, and a small account menu. */
+export function AppShell({ children }: { children: ReactNode }) {
+  const { user } = useLog()
+  const [, setEditor] = useAtom(sessionEditorAtom)
+  const navigate = useNavigate()
+  const path = useLocation({ select: (l) => l.pathname })
+  const profile = useQuery(profileQuery(user.id))
+  const name = profile.data?.display_name || user.email || 'You'
+  const close = (e: { currentTarget: HTMLElement }) => e.currentTarget.closest('details')?.removeAttribute('open')
 
   return (
     <div className="min-h-svh">
       <OfflineBanner />
-      <header className="sticky top-0 z-20 border-b print:hidden bg-background/90 pt-[env(safe-area-inset-top)] backdrop-blur">
+      <header className="sticky top-0 z-20 border-b bg-background/90 pt-[env(safe-area-inset-top)] backdrop-blur print:hidden">
         <div className="mx-auto flex h-14 max-w-3xl items-center gap-3 px-4">
-          <Link to={coachesAnyone ? '/players' : '/overview'} className="flex items-baseline gap-2">
-            <span className="font-display text-2xl leading-none">Baseline</span>
-          </Link>
-          <LogSwitcher />
-          <span className="hidden max-w-40 truncate text-sm text-muted-foreground lg:inline">
-            {!coachesAnyone && log.name}
-          </span>
-          <nav aria-label="Main" className="ml-auto hidden items-center gap-1 md:flex">
-            {nav.map(({ to, label, exact }) => (
-              <Link key={to} to={to} activeOptions={{ exact }} activeProps={linkActive}
-                className={`${linkBase} px-2.5 py-1.5`}>
-                {label}
-              </Link>
+          <Link to="/overview"><Wordmark className="text-2xl" /></Link>
+          <nav aria-label="Main" className="ml-4 hidden items-center gap-1 md:flex">
+            {NAV.map(({ to, label, exact }) => (
+              <Link key={to} to={to} activeOptions={{ exact }} activeProps={linkActive} className={`${linkBase} px-2.5 py-1.5`}>{label}</Link>
             ))}
           </nav>
-          {isPlayer && (
-            <Button size="sm" className="ml-auto md:ml-2" onClick={() => setEditor({ open: true, session: null })}>
-              <Plus /> Log session
-            </Button>
-          )}
-          {isCoach && (
-            <Button size="sm" className="ml-auto md:ml-2" onClick={() => setNoteOpen(true)}>
-              <MessageSquarePlus /> Add note
-            </Button>
-          )}
+          <Button size="sm" className="ml-auto" onClick={() => setEditor({ open: true, session: null })}>
+            <Plus /> Log session
+          </Button>
+          <details className="relative">
+            <summary className="grid size-9 cursor-pointer list-none place-items-center rounded-full border bg-card text-sm font-medium [&::-webkit-details-marker]:hidden" aria-label="Account menu">
+              {name.slice(0, 1).toUpperCase()}
+            </summary>
+            <div className="absolute right-0 z-40 mt-2 w-60 rounded-lg border bg-popover p-1 text-sm shadow-lg">
+              <p className="truncate px-3 py-2 text-xs text-muted-foreground">{name}</p>
+              <Link to="/settings" onClick={close} className="flex items-center gap-2 rounded-md px-3 py-2.5 hover:bg-accent"><Settings className="size-4" /> Settings</Link>
+              <button type="button" className="block w-full rounded-md px-3 py-2.5 text-left hover:bg-accent"
+                onClick={(e) => { close(e); void setView('coach').then(() => navigate({ to: '/start' }), (err: Error) => toast.error(err.message)) }}>
+                Switch to coach view
+              </button>
+            </div>
+          </details>
         </div>
       </header>
 
-      <main className="mx-auto max-w-3xl px-4 py-8 pb-28 md:pb-16 print:max-w-none print:p-0">
-        {isCoach && path !== '/players' && (
-          <div className="mb-6 flex items-center justify-between gap-3 rounded-lg bg-accent/60 px-3.5 py-2.5 text-sm print:hidden">
-            <span className="min-w-0 truncate">Viewing <span className="font-medium">{playerName}</span></span>
-            <Link to="/players" className="inline-flex shrink-0 items-center gap-1 font-medium text-accent-foreground underline-offset-4 hover:underline">
-              <ArrowLeft className="size-3.5" aria-hidden /> All players
-            </Link>
-          </div>
-        )}
-        {children}
-      </main>
+      <main className="paper-top relative mx-auto max-w-3xl px-4 py-8 pb-28 md:pb-16 print:max-w-none print:p-0"><div key={path} className="page-in">{children}</div></main>
 
       <nav aria-label="Main"
-        className="fixed inset-x-0 bottom-0 z-20 grid border-t print:hidden bg-background/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden"
-        style={{ gridTemplateColumns: `repeat(${nav.length}, minmax(0, 1fr))` }}>
-        {nav.map(({ to, label, Icon, exact }) => (
+        className="fixed inset-x-0 bottom-0 z-20 grid grid-cols-4 border-t bg-background/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden print:hidden">
+        {NAV.map(({ to, label, Icon, exact }) => (
           <Link key={to} to={to} activeOptions={{ exact }} activeProps={linkActive}
-            className={`${linkBase} flex-col gap-0.5 rounded-none py-2 text-[11px]`}>
+            className={`${linkBase} flex-col gap-0.5 rounded-none py-2.5 text-[11px]`}>
             <Icon className="size-5" />
-            <span className="max-w-full truncate px-0.5">{label.split(' ')[0]}</span>
+            {label}
           </Link>
         ))}
       </nav>
 
       <SessionDialog />
-      <NoteDialog />
     </div>
   )
 }
