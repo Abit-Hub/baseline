@@ -176,6 +176,41 @@ export function useScheduleActions(logId: string) {
   }
 }
 
+/* ---------------------------------------------------------- coach invites */
+
+export const coachInviteQuery = () =>
+  queryOptions({
+    queryKey: ['coach-invite'],
+    queryFn: async () => check(await supabase.rpc('my_coach_invite')) as string,
+  })
+
+export function useRotateCoachInvite() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async () => check(await supabase.rpc('rotate_coach_invite')) as string,
+    onSuccess: (code) => qc.setQueryData(['coach-invite'], code),
+  })
+}
+
+/** Who is inviting. Null when the link is not valid. */
+export const coachInviteInfoQuery = (code: string) =>
+  queryOptions({
+    queryKey: ['coach-invite-info', code],
+    queryFn: async () => check(await supabase.rpc('coach_invite_info', { _code: code })) as string | null,
+  })
+
+export function useAcceptCoachInvite() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async (code: string) => check(await supabase.rpc('accept_coach_invite', { _code: code })) as string,
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['logs'] })
+      void qc.invalidateQueries({ queryKey: ['memberships'] })
+      void qc.invalidateQueries({ queryKey: ['players'] })
+    },
+  })
+}
+
 /* ------------------------------------------------------------------ money */
 
 /** One log's arrangements and payments, or every log I belong to when logId is null. */

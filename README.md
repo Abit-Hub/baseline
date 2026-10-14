@@ -20,7 +20,7 @@ pnpm check                   # typecheck + lint + unit tests
 ## 1. Create the Supabase project (free)
 
 1. Sign up at supabase.com and create a project. Save the database password somewhere safe.
-2. Open **SQL Editor** and run the eight files in `supabase/migrations/`, in order, one after the other: `20261013000000_init.sql`, `20261013000001_roles.sql`, `20261013000002_remove_club.sql`, then `20261013000003_schedule.sql`, then `20261013000004_note_seen.sql`, then `20261013000005_feedback.sql` (the feedback box; read messages in the Table Editor), then `20261013000006_matches.sql` (the match log), then `20261013000007_payments.sql` (deals and payments). Together they create the tables, row-level security, the player and coach rules and the invite functions.
+2. Open **SQL Editor** and run the nine files in `supabase/migrations/`, in order, one after the other: `20261013000000_init.sql`, `20261013000001_roles.sql`, `20261013000002_remove_club.sql`, then `20261013000003_schedule.sql`, then `20261013000004_note_seen.sql`, then `20261013000005_feedback.sql` (the feedback box; read messages in the Table Editor), then `20261013000006_matches.sql` (the match log), then `20261013000007_payments.sql` (deals and payments), then `20261013000008_coach_invites.sql` (coach invite links). Together they create the tables, row-level security, the player and coach rules and the invite functions.
 3. **Project Settings → API**: copy the Project URL and the publishable (anon) key into `.env.local`.
 4. **Authentication → Providers → Email**: for a quick start, turn off "Confirm email". Leave it on if you prefer, but then set the URLs in the next step first.
 

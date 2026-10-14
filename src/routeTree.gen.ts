@@ -22,6 +22,7 @@ import { Route as AppReportRouteImport } from './routes/_app/report'
 import { Route as AppScheduleRouteImport } from './routes/_app/schedule'
 import { Route as AppSessionsRouteImport } from './routes/_app/sessions'
 import { Route as AppSettingsRouteImport } from './routes/_app/settings'
+import { Route as InviteCodeRouteImport } from './routes/invite.$code'
 import { Route as JoinCodeRouteImport } from './routes/join.$code'
 
 const IndexRoute = IndexRouteImport.update({
@@ -88,6 +89,11 @@ const AppSettingsRoute = AppSettingsRouteImport.update({
   path: '/settings',
   getParentRoute: () => AppRoute,
 } as any)
+const InviteCodeRoute = InviteCodeRouteImport.update({
+  id: '/invite/$code',
+  path: '/invite/$code',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const JoinCodeRoute = JoinCodeRouteImport.update({
   id: '/join/$code',
   path: '/join/$code',
@@ -107,6 +113,7 @@ export interface FileRoutesByFullPath {
   '/schedule': typeof AppScheduleRoute
   '/sessions': typeof AppSessionsRoute
   '/settings': typeof AppSettingsRoute
+  '/invite/$code': typeof InviteCodeRoute
   '/join/$code': typeof JoinCodeRoute
 }
 export interface FileRoutesByTo {
@@ -122,6 +129,7 @@ export interface FileRoutesByTo {
   '/schedule': typeof AppScheduleRoute
   '/sessions': typeof AppSessionsRoute
   '/settings': typeof AppSettingsRoute
+  '/invite/$code': typeof InviteCodeRoute
   '/join/$code': typeof JoinCodeRoute
 }
 export interface FileRoutesById {
@@ -139,6 +147,7 @@ export interface FileRoutesById {
   '/_app/schedule': typeof AppScheduleRoute
   '/_app/sessions': typeof AppSessionsRoute
   '/_app/settings': typeof AppSettingsRoute
+  '/invite/$code': typeof InviteCodeRoute
   '/join/$code': typeof JoinCodeRoute
 }
 export interface FileRouteTypes {
@@ -156,6 +165,7 @@ export interface FileRouteTypes {
     | '/schedule'
     | '/sessions'
     | '/settings'
+    | '/invite/$code'
     | '/join/$code'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -171,6 +181,7 @@ export interface FileRouteTypes {
     | '/schedule'
     | '/sessions'
     | '/settings'
+    | '/invite/$code'
     | '/join/$code'
   id:
     | '__root__'
@@ -187,6 +198,7 @@ export interface FileRouteTypes {
     | '/_app/schedule'
     | '/_app/sessions'
     | '/_app/settings'
+    | '/invite/$code'
     | '/join/$code'
   fileRoutesById: FileRoutesById
 }
@@ -197,6 +209,7 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   StartRoute: typeof StartRoute
+  InviteCodeRoute: typeof InviteCodeRoute
   JoinCodeRoute: typeof JoinCodeRoute
 }
 
@@ -293,6 +306,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppSettingsRouteImport
       parentRoute: typeof AppRoute
     }
+    '/invite/$code': {
+      id: '/invite/$code'
+      path: '/invite/$code'
+      fullPath: '/invite/$code'
+      preLoaderRoute: typeof InviteCodeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/join/$code': {
       id: '/join/$code'
       path: '/join/$code'
@@ -332,6 +352,7 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   StartRoute: StartRoute,
+  InviteCodeRoute: InviteCodeRoute,
   JoinCodeRoute: JoinCodeRoute,
 }
 export const routeTree = rootRouteImport

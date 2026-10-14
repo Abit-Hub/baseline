@@ -1,10 +1,13 @@
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
 import { useSetAtom } from 'jotai'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { InvitePlayerPanel } from '@/components/invite-player'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useCreateLog } from '@/data/queries'
+import { pendingInvite } from '@/lib/pending-invite'
 import { supabase } from '@/lib/supabase'
 import { activeLogIdAtom } from '@/state/atoms'
 
@@ -14,6 +17,14 @@ export function Onboarding() {
   const create = useCreateLog()
   const setActive = useSetAtom(activeLogIdAtom)
   const navigate = useNavigate()
+  const qc = useQueryClient()
+  const me = useQuery({ queryKey: ['me-name'], queryFn: async () => (await supabase.auth.getUser()).data.user?.user_metadata?.display_name as string | undefined })
+
+  // Someone who opened a coach's invite link and then signed up is sent back to it.
+  useEffect(() => {
+    const code = pendingInvite.get()
+    if (code) void navigate({ to: '/invite/$code', params: { code } })
+  }, [navigate])
 
   return (
     <main className="mx-auto flex min-h-svh w-full max-w-md flex-col justify-center gap-8 px-4 py-10">
@@ -45,16 +56,19 @@ export function Onboarding() {
 
       <details className="group rounded-lg border px-4 py-3 text-sm">
         <summary className="cursor-pointer font-medium marker:text-muted-foreground">
-          I’m a coach and have an invite link
+          I’m a coach
         </summary>
-        <ol className="mt-3 list-decimal space-y-1 pl-5 text-muted-foreground">
-          <li>Open the link your player sent you, while signed in here.</li>
-          <li>Tap “Join as their coach”.</li>
-          <li>Repeat for every player. They all appear on your Players page.</li>
-        </ol>
         <p className="mt-3 text-muted-foreground">
-          No link yet? Ask the player to open Settings and copy their coach link. You can also create your own log
-          above if you train as well.
+          Send this link to your players. Each one signs up and gets a log with you as their coach. They appear on your Players page.
+        </p>
+        <div className="mt-3"><InvitePlayerPanel coachName={me.data ?? ''} /></div>
+        <Button type="button" variant="outline" size="sm" className="mt-3"
+          onClick={() => { void qc.invalidateQueries({ queryKey: ['logs'] }); void qc.invalidateQueries({ queryKey: ['memberships'] }) }}>
+          A player has joined: check now
+        </Button>
+        <p className="mt-4 text-muted-foreground">
+          A player already sent you their coach link instead? Open it while signed in and tap “Join as their coach”.
+          You can also create your own log above if you train as well.
         </p>
       </details>
 

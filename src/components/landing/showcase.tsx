@@ -177,7 +177,7 @@ const FAQ = [
   ['What can a coach see?', 'Only the players who invited them. A player’s log is theirs: sessions, ratings, drills and goals. The coach can read it, leave notes and suggest goals and drills, but cannot change what the player wrote.'],
   ['What if a player forgets to log?', 'It shows. After a scheduled session ends with nothing logged, that player moves to the top of the coach’s list. The player also gets a one-tap rating prompt right after the session.'],
   ['My training times change every week. Can it cope?', 'Yes. Set the usual weekly times once, then move or cancel a single day without touching the rest. The coach sees every player’s week in one list, in time order.'],
-  ['How does a coach get started?', 'Create an account, then ask a player to send you the coach link from their Settings. Open it, tap join, and that player appears on your Players page. Add more players the same way.'],
+  ['How does a coach get started?', 'Create an account and send your invite link to your players on WhatsApp. Each one signs up and their log is made with you as their coach, so they appear on your Players page. A player can also send you their own coach link.'],
 ]
 
 export function Faq() {

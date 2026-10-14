@@ -9,3 +9,7 @@ export const askPlayerMessage = (origin: string) =>
   `Hi, I'm using Baseline to follow your training, so we can both see your sessions and I can leave you notes. Sign up here: ${origin}/login?mode=up . Then open Settings, tap "Send on WhatsApp" and send me your coach link.`
 
 export const whatsappTextUrl = (text: string) => `https://wa.me/?text=${encodeURIComponent(text)}`
+
+/** What a coach sends a player to bring them in. The player's log is made when they accept. */
+export const playerInviteMessage = (coach: string, link: string) =>
+  `Hi, it's ${coach}. I'm using Baseline to follow your training: your sessions, notes from me, and our schedule in one place. Open this link, sign up, and you're set: ${link}`

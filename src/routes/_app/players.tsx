@@ -1,19 +1,20 @@
 import { useQuery } from '@tanstack/react-query'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { addDays } from 'date-fns'
-import { AlertCircle, Copy, MessageCircle } from 'lucide-react'
-import { toast } from 'sonner'
+import { AlertCircle, UserPlus } from 'lucide-react'
+import { useState } from 'react'
 import { FeedbackForm } from '@/components/feedback'
+import { InvitePlayerPanel } from '@/components/invite-player'
 import { MoneySummary, PaymentLine } from '@/components/payments'
 import { useLog } from '@/components/log-context'
 import { DayGroups, OccurrenceRow } from '@/components/schedule'
 import { ListSkeleton, PageHeader, Section } from '@/components/ui-bits'
-import { Button, buttonVariants } from '@/components/ui/button'
+import { Button } from '@/components/ui/button'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { moneyQuery, myPlayersQuery, scheduleQuery } from '@/data/queries'
 import { heldSessions, standing } from '@/domain/payments'
 import { attentionFor, endsAt, isoDate, occurrences } from '@/domain/schedule'
 import { agoLabel } from '@/domain/stats'
-import { askPlayerMessage, whatsappTextUrl } from '@/lib/invite'
 import { cn } from '@/lib/utils'
 
 export const Route = createFileRoute('/_app/players')({ component: Players })
@@ -21,14 +22,16 @@ export const Route = createFileRoute('/_app/players')({ component: Players })
 const STALE_DAYS = 7
 
 function Players() {
-  const { selectLog, log } = useLog()
+  const { selectLog, log, nameOf, user } = useLog()
+  const myName = nameOf(user.id) === 'Someone' ? '' : nameOf(user.id)
+  const [inviting, setInviting] = useState(false)
   const navigate = useNavigate()
   const { data: players = [], isPending, error } = useQuery(myPlayersQuery())
   const sched = useQuery(scheduleQuery(null))
   const money = useQuery(moneyQuery(null))
 
   const openLog = (logId: string, hash?: string) => { selectLog(logId); void navigate({ to: '/overview', hash }) }
-  const nameOf = new Map(players.map((p) => [p.log_id, p.player_name || 'Unnamed player']))
+  const playerNames = new Map(players.map((p) => [p.log_id, p.player_name || 'Unnamed player']))
 
   // Only the logs I coach. A coach may also keep a log of their own.
   const mine = new Set(players.map((p) => p.log_id))
@@ -59,16 +62,18 @@ function Players() {
   const needAttention = rows.filter((r) => r.reasons.length).length
 
   const row = (o: (typeof all)[number]) => (
-    <OccurrenceRow occ={o} title={nameOf.get(o.logId) ?? 'Player'} showPrep onOpenLog={() => openLog(o.logId)} />
+    <OccurrenceRow occ={o} title={playerNames.get(o.logId) ?? 'Player'} showPrep onOpenLog={() => openLog(o.logId)} />
   )
 
   return (
     <>
       <PageHeader
         eyebrow={`${players.length} ${players.length === 1 ? 'player' : 'players'}${needAttention ? ` · ${needAttention} to look at` : ''}`}
-        title="Players" />
+        title="Players">
+        {players.length > 0 && <Button onClick={() => setInviting(true)}><UserPlus /> Invite a player</Button>}
+      </PageHeader>
       {error && <p className="text-sm text-destructive">Could not load your players: {error.message}</p>}
-      {!isPending && !error && players.length === 0 && <FirstPlayer />}
+      {!isPending && !error && players.length === 0 && <FirstPlayer coachName={myName} />}
       {isPending && <ListSkeleton rows={4} />}
 
       {players.length > 0 && withDeals.length > 0 && <MoneySummary standings={withDeals} />}
@@ -136,6 +141,16 @@ function Players() {
         </Section>
       )}
 
+      <Dialog open={inviting} onOpenChange={setInviting}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="font-display text-3xl font-normal">Invite a player</DialogTitle>
+            <DialogDescription>Send this link. They sign up, and their log is made with you as their coach.</DialogDescription>
+          </DialogHeader>
+          <InvitePlayerPanel coachName={myName} />
+        </DialogContent>
+      </Dialog>
+
       <Section title="Tell us what to fix" hint="Something confusing or missing? It goes straight to the person building Baseline.">
         <FeedbackForm />
       </Section>
@@ -143,17 +158,16 @@ function Players() {
   )
 }
 
-/** What a coach with no players yet sees: three steps and a message ready to send. */
-function FirstPlayer() {
-  const message = askPlayerMessage(window.location.origin)
+/** What a coach with no players yet sees: their invite link and what happens next. */
+function FirstPlayer({ coachName }: { coachName: string }) {
   const steps = [
-    ['Ask a player to sign up', 'Send them this message. It has the sign-up link.'],
-    ['They send you their coach link', 'From their Settings, one tap on WhatsApp.'],
-    ['Open it and tap “Join as coach”', 'Make sure you are signed in first. They appear here straight away.'],
+    ['Send your invite link', 'On WhatsApp, to any player you train.'],
+    ['They sign up', 'Their log is made for them, with you as their coach.'],
+    ['They appear here', 'Add their training times and payments from their Overview.'],
   ]
   return (
     <div className="rounded-xl border bg-card p-5 sm:p-6">
-      <h2 className="text-3xl">Add your first player</h2>
+      <h2 className="text-3xl">Invite your first player</h2>
       <ol className="mt-5 flex flex-col gap-4">
         {steps.map(([title, body], i) => (
           <li key={title} className="flex gap-3.5">
@@ -162,16 +176,8 @@ function FirstPlayer() {
           </li>
         ))}
       </ol>
-      <p className="mt-6 rounded-lg bg-muted/60 p-3.5 text-sm text-muted-foreground">{message}</p>
-      <div className="mt-3 flex flex-wrap gap-2">
-        <a href={whatsappTextUrl(message)} target="_blank" rel="noreferrer" className={buttonVariants({ size: 'lg' })}>
-          <MessageCircle /> Send on WhatsApp
-        </a>
-        <Button type="button" size="lg" variant="outline"
-          onClick={() => void navigator.clipboard.writeText(message).then(() => toast.success('Message copied'), () => toast.error('Copy failed'))}>
-          <Copy /> Copy message
-        </Button>
-      </div>
+      <div className="mt-6"><InvitePlayerPanel coachName={coachName} /></div>
+      <p className="mt-5 text-xs text-muted-foreground">A player can also send you their own coach link from their Settings. Open it while signed in and tap “Join as their coach”.</p>
     </div>
   )
 }
