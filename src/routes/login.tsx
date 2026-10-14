@@ -1,5 +1,6 @@
 import { useForm } from '@tanstack/react-form'
 import { Link, createFileRoute, redirect, useNavigate } from '@tanstack/react-router'
+import { MailCheck } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { z } from 'zod'
@@ -29,6 +30,8 @@ function Login() {
   const { redirect: back, mode: startMode } = Route.useSearch()
   const [mode, setMode] = useState<'in' | 'up' | 'reset'>(startMode ?? 'in')
   const [notice, setNotice] = useState<string | null>(null)
+  /** The email a new account was just made with. Shows the "check your email" message on the sign-in screen. */
+  const [created, setCreated] = useState<string | null>(null)
   const navigate = useNavigate()
 
   const form = useForm({
@@ -44,7 +47,12 @@ function Login() {
           options: { data: { display_name: value.name.trim() } },
         })
         if (error) return void toast.error(error.message)
-        if (!data.session) return setNotice('Check your email to confirm your account, then sign in.')
+        if (!data.session) {
+          // Move to sign-in with the email filled in, and say clearly what to do next.
+          form.setFieldValue('password', '')
+          setMode('in')
+          return setCreated(value.email.trim())
+        }
       } else {
         const { error } = await supabase.auth.signInWithPassword({
           email: value.email,
@@ -63,10 +71,10 @@ function Login() {
       <header>
         <Link to="/" className="text-sm font-medium tracking-wide text-primary uppercase">Baseline</Link>
         <h1 className="mt-1 text-5xl leading-none">
-          {mode === 'in' ? 'Welcome back' : 'Start your log'}
+          {created ? 'Account created' : mode === 'in' ? 'Welcome back' : 'Start your log'}
         </h1>
         <p className="mt-3 text-muted-foreground">
-          A shared training notebook for you and your coach.
+          {created ? 'One more step: confirm your email, then sign in.' : 'A shared training notebook for you and your coach.'}
         </p>
       </header>
 
@@ -78,6 +86,16 @@ function Login() {
           void form.handleSubmit()
         }}
       >
+        {created && (
+          <div role="status" className="flex gap-3 rounded-lg border border-primary/30 bg-accent px-4 py-3.5 text-accent-foreground">
+            <MailCheck className="mt-0.5 size-5 shrink-0" aria-hidden />
+            <p className="text-sm">
+              <span className="block font-medium">Check your email</span>
+              We sent a confirmation link to <span className="font-medium">{created}</span>. Open it to confirm your account, then sign in below.
+              If it is not in your inbox, look in spam.
+            </p>
+          </div>
+        )}
         {mode === 'up' && (
           <form.Field name="name">
             {(f) => (
@@ -139,6 +157,7 @@ function Login() {
           onClick={() => {
             setMode(mode === 'in' ? 'up' : 'in')
             setNotice(null)
+            setCreated(null)
           }}
         >
           {mode === 'in' ? 'Create an account' : 'Sign in'}
