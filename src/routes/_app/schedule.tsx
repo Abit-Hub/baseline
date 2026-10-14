@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
 import { CalendarDays } from 'lucide-react'
+import { addDays } from 'date-fns'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { useLog } from '@/components/log-context'
@@ -23,6 +24,9 @@ function Schedule() {
   )
   const now = new Date()
   const coming = occurrences(data?.slots ?? [], data?.overrides ?? [], now, 14).filter((o) => endsAt(o) >= now)
+  // The last week, newest first, so a rained-off session can still be moved.
+  const recent = occurrences(data?.slots ?? [], data?.overrides ?? [], addDays(now, -7), 8)
+    .filter((o) => endsAt(o) < now).sort((a, b) => b.date.localeCompare(a.date) || b.start.localeCompare(a.start))
 
   return (
     <>
@@ -35,6 +39,12 @@ function Schedule() {
         )}
         <DayGroups items={coming} render={(o) => <OccurrenceRow occ={o} title={isCoach ? playerName : 'Training'} showPrep={isCoach} />} />
       </Section>
+
+      {recent.length > 0 && (
+        <Section title="Last week" hint="Rained off or missed? Tap a session to move it to another day, or mark it cancelled.">
+          <DayGroups items={recent} render={(o) => <OccurrenceRow occ={o} title={isCoach ? playerName : 'Training'} />} />
+        </Section>
+      )}
 
       <Section title="Usual weekly times" hint="Either of you can change these. A time that shifts for one week is easier to move above.">
         {slots.length > 0 && (
